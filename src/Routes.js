@@ -5,7 +5,7 @@ import Attendance from './Attendance';
 import Home from './Home';
 import './styles.css';
 import ResponsiveAppBar from './ResponsiveAppBar';
-import Login from './Login/Login';
+import Login from './Authentication/Login';
 
 function AppRoutes() {
     return (
