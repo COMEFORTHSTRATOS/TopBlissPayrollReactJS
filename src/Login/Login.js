@@ -32,7 +32,7 @@ export default function Login() {
         }}
       >
         <Typography variant="h5" component="h1" gutterBottom>
-          <b>Welcome to TopBliss HR</b>
+          <b>TopBliss HR Admin</b>
         </Typography>
         <Typography variant="body2" gutterBottom>
           Sign in to continue.
