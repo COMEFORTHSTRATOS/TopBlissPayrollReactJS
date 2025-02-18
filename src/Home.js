@@ -1,11 +1,20 @@
 import React from 'react';
+import { Container, Typography, Box } from '@mui/material';
+import ResponsiveAppBar from './ResponsiveAppBar';
 
 function Home() {
   return (
-    <div>
-      <h1>Welcome to TopBliss Payroll</h1>
-      <p>Your one-stop solution for managing payrosssll and attendance.</p>
-    </div>
+    <Box sx={{ flexGrow: 1 }}>
+      <ResponsiveAppBar />
+      <Container sx={{ mt: 4 }}>
+        <Typography variant="h4" gutterBottom>
+          Welcome to TopBliss Payroll
+        </Typography>
+        <Typography variant="body1">
+          Your one-stop solution for managing payroll and attendance.
+        </Typography>
+      </Container>
+    </Box>
   );
 }
 

@@ -1,11 +1,20 @@
 import React from 'react';
+import { Container, Typography, Box } from '@mui/material';
+import ResponsiveAppBar from './ResponsiveAppBar';
 
 function Attendance() {
   return (
-    <div>
-      <h2>Attendance Management</h2>
-      <p>Track and manage employee attendance efficiently.</p>
-    </div>
+    <Box sx={{ flexGrow: 1 }}>
+      <ResponsiveAppBar />
+      <Container sx={{ mt: 4 }}>
+        <Typography variant="h4" gutterBottom>
+          Attendance Management
+        </Typography>
+        <Typography variant="body1">
+          Track and manage employee attendance efficiently.
+        </Typography>
+      </Container>
+    </Box>
   );
 }
 
