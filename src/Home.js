@@ -4,7 +4,7 @@ function Home() {
   return (
     <div>
       <h1>Welcome to TopBliss Payroll</h1>
-      <p>Your one-stop solution for managing payroll and attendance.</p>
+      <p>Your one-stop solution for managing payrosssll and attendance.</p>
     </div>
   );
 }
