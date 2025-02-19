@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import { Paper, Typography, TextField, Button, Box, Link, Alert } from '@mui/material';
 import { collection, addDoc, getDocs, query, where } from 'firebase/firestore';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, sendEmailVerification, reload } from 'firebase/auth';
 import { db, auth } from '../firebase';
 import CryptoJS from 'crypto-js';
 
@@ -16,6 +16,9 @@ export default function Register() {
     confirmPassword: ''
   });
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [verificationPending, setVerificationPending] = useState(false);
+  const [tempUserData, setTempUserData] = useState(null);
 
   const handleChange = (e) => {
     setFormData({
@@ -24,9 +27,59 @@ export default function Register() {
     });
   };
 
+  useEffect(() => {
+    let verificationCheck;
+    if (verificationPending && tempUserData) {
+      verificationCheck = setInterval(async () => {
+        try {
+          await reload(tempUserData);
+          
+          if (tempUserData.emailVerified) {
+            clearInterval(verificationCheck);
+            
+            try {
+              // Add verified user to Firestore
+              await addDoc(collection(db, 'users'), {
+                uid: tempUserData.uid,
+                firstName: formData.firstName,
+                lastName: formData.lastName,
+                fullName: `${formData.firstName} ${formData.lastName}`,
+                email: formData.email,
+                emailVerified: true,
+                createdAt: new Date().toISOString()
+              });
+
+              // Immediately navigate to login without changing state
+              navigate('/login', { 
+                state: { 
+                  verificationSuccess: true,
+                  message: 'Email verified! Account created successfully.' 
+                }
+              });
+              
+            } catch (error) {
+              console.error('Firestore error:', error);
+              setError('Error creating user profile. Please contact support.');
+            }
+          }
+        } catch (error) {
+          console.error('Verification check error:', error);
+        }
+      }, 2000);
+    }
+
+    return () => {
+      if (verificationCheck) {
+        clearInterval(verificationCheck);
+      }
+    };
+  }, [verificationPending, tempUserData, formData, navigate]);
+
   const handleRegister = async (e) => {
     e.preventDefault();
     setError('');
+    setSuccess('');
+    setVerificationPending(false);
 
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
@@ -50,17 +103,17 @@ export default function Register() {
         formData.password
       );
 
-      // Add user to Firestore with separate firstName and lastName
-      await addDoc(collection(db, 'users'), {
-        uid: userCredential.user.uid,
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        fullName: `${formData.firstName} ${formData.lastName}`, // Keep fullName for compatibility
-        email: formData.email,
-        createdAt: new Date().toISOString()
-      });
+      // Store temp user data and send verification email
+      setTempUserData(userCredential.user);
+      await sendEmailVerification(userCredential.user);
+      setVerificationPending(true);
+      
+      setSuccess(
+        'Please check your email to verify your account. ' +
+        'Once verified, you will be automatically redirected to the login page. ' +
+        'Please do not close this window.'
+      );
 
-      navigate('/login');
     } catch (err) {
       let errorMessage = 'Failed to register. Please try again.';
       if (err.code === 'auth/email-already-in-use') {
@@ -102,8 +155,16 @@ export default function Register() {
         </Typography>
         
         {error && <Alert severity="error">{error}</Alert>}
+        {success && <Alert severity="success">{success}</Alert>}
+        {verificationPending && (
+          <Alert severity="info">
+            Verification email sent! Please check your email and click the verification link.
+            This page will automatically redirect you once verified.
+            Keep this window open.
+          </Alert>
+        )}
         
-        <form onSubmit={handleRegister}>
+        <form onSubmit={handleRegister} style={{ display: verificationPending ? 'none' : 'block' }}>
           <TextField
             fullWidth
             margin="normal"
