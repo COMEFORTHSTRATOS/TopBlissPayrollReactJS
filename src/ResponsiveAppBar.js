@@ -209,7 +209,7 @@ function ResponsiveAppBar() {
                 }}
                 onClick={handleOpenUserMenu}
               >
-                Welcome back, {userData ? (userData.firstName || currentUser.email) : 'User'}!
+                Welcome, {userData ? (userData.firstName || currentUser.email) : 'User'}!
               </Typography>
               <Menu
                 sx={{ mt: '45px' }}
