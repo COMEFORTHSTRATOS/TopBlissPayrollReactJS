@@ -2,11 +2,11 @@ import * as React from 'react';
 import { AppBar, Box, Toolbar, IconButton, Typography, Menu, Container, Button, MenuItem, Tooltip } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from './contexts/AuthContext';
-import LogoutDialog from './components/LogoutDialog';
-import logobliss from './assets/logobliss.png';
+import { useAuth } from '../contexts/AuthContext';
+import LogoutDialog from './LogoutDialog';
+import logobliss from '../assets/logobliss.png';
 import { doc, getDoc, query, collection, where, getDocs } from 'firebase/firestore';
-import { db } from './firebase';
+import { db } from '../firebase';
 
 function ResponsiveAppBar() {
   const [anchorElNav, setAnchorElNav] = React.useState(null);

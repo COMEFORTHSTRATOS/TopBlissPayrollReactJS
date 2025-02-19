@@ -1,10 +1,10 @@
 import React from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
-import Payroll from './Payroll';
-import Employees from './Employees';
-import Home from './Home';
+import Payroll from './pages/Payroll';
+import Employees from './pages/Employees';
+import Home from './pages/Home';
 import './styles.css';
-import ResponsiveAppBar from './ResponsiveAppBar';
+import ResponsiveAppBar from './components/ResponsiveAppBar';
 import Login from './Authentication/Login';
 
 function AppRoutes() {

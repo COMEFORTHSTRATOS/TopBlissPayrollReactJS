@@ -1,6 +1,6 @@
 import React from 'react';
 import { Container, Typography, Box } from '@mui/material';
-import ResponsiveAppBar from './ResponsiveAppBar';
+import ResponsiveAppBar from '../components/ResponsiveAppBar';
 
 function Payroll() {
   return (

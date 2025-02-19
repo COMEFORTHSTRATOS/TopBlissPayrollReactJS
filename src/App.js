@@ -4,8 +4,8 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import Login from './Authentication/Login';
 import Register from './Authentication/Register';
 import Home from './Home';
-import Payroll from './Payroll';
-import Employees from './Employees';
+import Payroll from './Features/Payroll';
+import Employees from './Features/Employees';
 import { AuthProvider } from './contexts/AuthContext';
 import PrivateRoute from './components/PrivateRoute';
 
