@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
-import { Paper, Typography, TextField, Button, Box, Link, Alert } from '@mui/material';
+import { Paper, Typography, TextField, Button, Box, Link, Alert, InputAdornment, IconButton } from '@mui/material';
+import { Visibility, VisibilityOff } from '@mui/icons-material';
 import { collection, addDoc, getDocs, query, where } from 'firebase/firestore';
 import { createUserWithEmailAndPassword, sendEmailVerification, reload } from 'firebase/auth';
 import { db, auth } from '../firebase';
@@ -19,12 +20,20 @@ export default function Register() {
   const [success, setSuccess] = useState('');
   const [verificationPending, setVerificationPending] = useState(false);
   const [tempUserData, setTempUserData] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const handleChange = (e) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
     });
+  };
+
+  const handleClickShowPassword = () => setShowPassword(!showPassword);
+  const handleClickShowConfirmPassword = () => setShowConfirmPassword(!showConfirmPassword);
+  const handleMouseDownPassword = (event) => {
+    event.preventDefault();
   };
 
   useEffect(() => {
@@ -129,7 +138,7 @@ export default function Register() {
   return (
     <Box
       sx={{
-        minHeight: '100vh',
+        minHeight: '90vh',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -140,14 +149,14 @@ export default function Register() {
         elevation={3}
         sx={{
           p: 4,
-          width: '100%',
+          width: '90%',
           maxWidth: 400,
           display: 'flex',
           flexDirection: 'column',
           gap: 2
         }}
       >
-        <Typography variant="h5" component="h1" gutterBottom>
+        <Typography variant="h6" component="h1" gutterBottom>
           <b>Create Account</b>
         </Typography>
         <Typography variant="body2" gutterBottom>
@@ -201,22 +210,50 @@ export default function Register() {
             margin="normal"
             label="Password"
             name="password"
-            type="password"
+            type={showPassword ? 'text' : 'password'}
             value={formData.password}
             onChange={handleChange}
             required
             variant="outlined"
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton
+                    aria-label="toggle password visibility"
+                    onClick={handleClickShowPassword}
+                    onMouseDown={handleMouseDownPassword}
+                    edge="end"
+                  >
+                    {showPassword ? <VisibilityOff /> : <Visibility />}
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
           />
           <TextField
             fullWidth
             margin="normal"
             label="Confirm Password"
             name="confirmPassword"
-            type="password"
+            type={showConfirmPassword ? 'text' : 'password'}
             value={formData.confirmPassword}
             onChange={handleChange}
             required
             variant="outlined"
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton
+                    aria-label="toggle confirm password visibility"
+                    onClick={handleClickShowConfirmPassword}
+                    onMouseDown={handleMouseDownPassword}
+                    edge="end"
+                  >
+                    {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
           />
           <Button
             type="submit"

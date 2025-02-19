@@ -7,7 +7,7 @@ function Employees() {
     <Box sx={{ flexGrow: 1 }}>
       <ResponsiveAppBar />
       <Container sx={{ mt: 4 }}>
-        <Typography variant="h4" gutterBottom>
+        <Typography variant="h5" gutterBottom>
           Employees Management
         </Typography>
         <Typography variant="body1">

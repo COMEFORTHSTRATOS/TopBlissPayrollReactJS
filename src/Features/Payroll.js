@@ -7,7 +7,7 @@ function Payroll() {
     <Box sx={{ flexGrow: 1 }}>
       <ResponsiveAppBar />
       <Container sx={{ mt: 4 }}>
-        <Typography variant="h4" gutterBottom>
+        <Typography variant="h5" gutterBottom>
           Payroll Management
         </Typography>
         <Typography variant="body1">

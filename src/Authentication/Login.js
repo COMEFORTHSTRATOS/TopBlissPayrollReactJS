@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link as RouterLink, useLocation } from 'react-router-dom';
-import { Paper, Typography, TextField, Button, Box, Link, Alert } from '@mui/material';
+import { Paper, Typography, TextField, Button, Box, Link, Alert, InputAdornment, IconButton } from '@mui/material';
 import { signInWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
+import { Visibility, VisibilityOff } from '@mui/icons-material';
 import { auth } from '../firebase';
 import { doc, getDoc, query, collection, where, getDocs, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -21,6 +22,7 @@ export default function Login() {
   const [successMessage, setSuccessMessage] = useState(
     location.state?.verificationSuccess ? location.state.message : ''
   );
+  const [showPassword, setShowPassword] = useState(false);
 
   // Clear location state after reading it
   useEffect(() => {
@@ -40,6 +42,11 @@ export default function Login() {
     } catch (err) {
       setError('Failed to resend verification email. Please try again.');
     }
+  };
+
+  const handleClickShowPassword = () => setShowPassword(!showPassword);
+  const handleMouseDownPassword = (event) => {
+    event.preventDefault();
   };
 
   const handleLogin = async (e) => {
@@ -107,12 +114,9 @@ export default function Login() {
           gap: 2
         }}
       >
-        <Typography variant="h5" component="h1" gutterBottom>
+        <Typography variant="h6" component="h1" gutterBottom>
           <Box sx={{ textAlign: 'center', mb: 2 }}>
             <img src={loginpage} alt="Login Page" style={{ maxWidth: '100%', height: 'auto' }} />
-          </Box>
-          <Box sx={{ textAlign: 'center' }}>
-            <b>TopBliss HR</b>
           </Box>
         </Typography>
         <Typography variant="body2" gutterBottom>
@@ -149,11 +153,25 @@ export default function Login() {
             fullWidth
             margin="normal"
             label="Password"
-            type="password"
+            type={showPassword ? 'text' : 'password'}
             required
             variant="outlined"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton
+                    aria-label="toggle password visibility"
+                    onClick={handleClickShowPassword}
+                    onMouseDown={handleMouseDownPassword}
+                    edge="end"
+                  >
+                    {showPassword ? <VisibilityOff /> : <Visibility />}
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
           />
           <Button
             type="submit"

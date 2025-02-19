@@ -7,11 +7,11 @@ function Home() {
     <Box sx={{ flexGrow: 1 }}>
       <ResponsiveAppBar />
       <Container sx={{ mt: 4 }}>
-        <Typography variant="h4" gutterBottom>
+        <Typography variant="h5" gutterBottom>
           Welcome to TopBliss Payroll
         </Typography>
         <Typography variant="body1">
-          pano ba workflow
+          Welcome to your Employee Management System. You can manage your employees and payroll here. hahahaha mamamatay nako
         </Typography>
       </Container>
     </Box>
