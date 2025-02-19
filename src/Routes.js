@@ -1,7 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import Payroll from './Payroll';
-import Attendance from './Attendance';
+import Employees from './Employees';
 import Home from './Home';
 import './styles.css';
 import ResponsiveAppBar from './ResponsiveAppBar';
@@ -25,10 +25,10 @@ function AppRoutes() {
                             <Payroll />
                         </>
                     } />
-                    <Route path="/attendance" element={
+                    <Route path="/employees" element={
                         <>
                             <ResponsiveAppBar />
-                            <Attendance />
+                            <Employees />
                         </>
                     } />
                 </Routes>

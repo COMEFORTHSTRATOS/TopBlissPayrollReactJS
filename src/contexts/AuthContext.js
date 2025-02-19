@@ -10,6 +10,7 @@ export function useAuth() {
 
 export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
+  const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const logout = async () => {
@@ -27,6 +28,8 @@ export function AuthProvider({ children }) {
 
   const value = {
     currentUser,
+    userData,
+    setUserData,
     loading,
     logout
   };

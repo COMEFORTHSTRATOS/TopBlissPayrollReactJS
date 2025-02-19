@@ -3,6 +3,9 @@ import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import { Paper, Typography, TextField, Button, Box, Link, Alert } from '@mui/material';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../firebase';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../firebase';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -10,6 +13,7 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const { setUserData } = useAuth();
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -17,7 +21,12 @@ export default function Login() {
     setLoading(true);
     
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      // Fetch user data from Firestore
+      const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
+      if (userDoc.exists()) {
+        setUserData(userDoc.data());
+      }
       navigate('/home');
     } catch (error) {
       setError('Failed to login. Please check your credentials.');

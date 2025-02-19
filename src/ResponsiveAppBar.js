@@ -1,26 +1,57 @@
 import * as React from 'react';
-import { AppBar, Box, Toolbar, IconButton, Typography, Menu, Container, Button, MenuItem, Tooltip, Avatar } from '@mui/material';
+import { AppBar, Box, Toolbar, IconButton, Typography, Menu, Container, Button, MenuItem, Tooltip } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import LogoutDialog from './components/LogoutDialog';
 import logobliss from './assets/logobliss.png';
+import { doc, getDoc, query, collection, where, getDocs } from 'firebase/firestore';
+import { db } from './firebase';
 
 function ResponsiveAppBar() {
   const [anchorElNav, setAnchorElNav] = React.useState(null);
   const [anchorElUser, setAnchorElUser] = React.useState(null);
   const [logoutDialogOpen, setLogoutDialogOpen] = React.useState(false);
+  const [userData, setUserData] = React.useState(null);
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { logout, currentUser } = useAuth();
+
+  React.useEffect(() => {
+    const fetchUserData = async () => {
+      if (currentUser && currentUser.uid) {
+        try {
+          // First, try to find the user document where uid matches
+          const q = query(collection(db, 'users'), where('uid', '==', currentUser.uid));
+          const querySnapshot = await getDocs(q);
+          
+          if (!querySnapshot.empty) {
+            const userData = querySnapshot.docs[0].data();
+            console.log('Found user data:', userData); // Debug log
+            setUserData(userData);
+          } else {
+            console.log('No user document found for uid:', currentUser.uid); // Debug log
+          }
+        } catch (error) {
+          console.error('Error fetching user data:', error);
+        }
+      }
+    };
+
+    fetchUserData();
+  }, [currentUser]);
+
+  // Add debug log to see what's in userData when rendering
+  console.log('Current userData state:', userData);
 
   const pages = [
     { name: 'Home', path: '/home' },
+    { name: 'Employees', path: '/employees' },
     { name: 'Payroll', path: '/payroll' },
-    { name: 'Attendance', path: '/attendance' }
+    
   ];
 
   const settings = [
-    { name: 'Profile', path: '/profile' },
+    { name: userData ? `${userData.email}` : (currentUser?.email || 'User'), path: '/profile' },
     { name: 'Account', path: '/account' },
     { name: 'Logout', action: () => setLogoutDialogOpen(true) }
   ];
@@ -168,11 +199,18 @@ function ResponsiveAppBar() {
             </Box>
 
             <Box sx={{ flexGrow: 0 }}>
-              <Tooltip title="Open settings">
-                <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
-                  <Avatar>TB</Avatar>
-                </IconButton>
-              </Tooltip>
+              <Typography 
+                variant="subtitle1" 
+                component="span" 
+                sx={{ 
+                  mr: 2,
+                  color: 'inherit',
+                  cursor: 'pointer'
+                }}
+                onClick={handleOpenUserMenu}
+              >
+                Welcome back, {userData ? (userData.firstName || currentUser.email) : 'User'}!
+              </Typography>
               <Menu
                 sx={{ mt: '45px' }}
                 id="menu-appbar"

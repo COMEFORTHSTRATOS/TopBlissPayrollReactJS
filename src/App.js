@@ -5,7 +5,7 @@ import Login from './Authentication/Login';
 import Register from './Authentication/Register';
 import Home from './Home';
 import Payroll from './Payroll';
-import Attendance from './Attendance';
+import Employees from './Employees';
 import { AuthProvider } from './contexts/AuthContext';
 import PrivateRoute from './components/PrivateRoute';
 
@@ -33,10 +33,10 @@ function App() {
             } 
           />
           <Route 
-            path="/attendance" 
+            path="/employees" 
             element={
               <PrivateRoute>
-                <Attendance />
+                <Employees />
               </PrivateRoute>
             } 
           />

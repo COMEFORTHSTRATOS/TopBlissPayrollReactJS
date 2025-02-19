@@ -9,7 +9,8 @@ import CryptoJS from 'crypto-js';
 export default function Register() {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    fullName: '',
+    firstName: '',
+    lastName: '',
     email: '',
     password: '',
     confirmPassword: ''
@@ -49,10 +50,12 @@ export default function Register() {
         formData.password
       );
 
-      // Add user to Firestore (without storing the password)
+      // Add user to Firestore with separate firstName and lastName
       await addDoc(collection(db, 'users'), {
         uid: userCredential.user.uid,
-        fullName: formData.fullName,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        fullName: `${formData.firstName} ${formData.lastName}`, // Keep fullName for compatibility
         email: formData.email,
         createdAt: new Date().toISOString()
       });
@@ -104,9 +107,19 @@ export default function Register() {
           <TextField
             fullWidth
             margin="normal"
-            label="Full Name"
-            name="fullName"
-            value={formData.fullName}
+            label="First Name"
+            name="firstName"
+            value={formData.firstName}
+            onChange={handleChange}
+            required
+            variant="outlined"
+          />
+          <TextField
+            fullWidth
+            margin="normal"
+            label="Last Name"
+            name="lastName"
+            value={formData.lastName}
             onChange={handleChange}
             required
             variant="outlined"

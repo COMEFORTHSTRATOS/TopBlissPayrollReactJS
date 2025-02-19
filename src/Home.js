@@ -11,7 +11,7 @@ function Home() {
           Welcome to TopBliss Payroll
         </Typography>
         <Typography variant="body1">
-          Your one-stop solution for managing payroll and attendance.
+          pano ba workflow
         </Typography>
       </Container>
     </Box>
