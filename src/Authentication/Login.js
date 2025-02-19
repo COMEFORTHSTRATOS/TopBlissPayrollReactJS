@@ -111,7 +111,9 @@ export default function Login() {
           <Box sx={{ textAlign: 'center', mb: 2 }}>
             <img src={loginpage} alt="Login Page" style={{ maxWidth: '100%', height: 'auto' }} />
           </Box>
-          <b>TopBliss HR Admin</b>
+          <Box sx={{ textAlign: 'center' }}>
+            <b>TopBliss HR</b>
+          </Box>
         </Typography>
         <Typography variant="body2" gutterBottom>
           Sign in to continue.
