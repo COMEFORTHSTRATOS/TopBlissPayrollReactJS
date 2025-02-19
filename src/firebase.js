@@ -4,6 +4,7 @@ import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
 
+
 const firebaseConfig = {
   apiKey: "AIzaSyD2Bg7bFCyAzYIoia58-OLiu9Gg7mhq9K4",
   authDomain: "topblissreactjs.firebaseapp.com",
