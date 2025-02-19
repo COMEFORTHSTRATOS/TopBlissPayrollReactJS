@@ -11,7 +11,7 @@ function Home() {
           Welcome to TopBliss Payroll
         </Typography>
         <Typography variant="body1">
-          Welcome to your Employee Management System. You can manage your employees and payroll here. hahahaha mamamatay nako
+          Welcome to your Employee Management System. You can manage your employees and payroll here.
         </Typography>
       </Container>
     </Box>
