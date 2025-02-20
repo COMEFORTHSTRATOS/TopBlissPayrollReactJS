@@ -1,11 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
-import { Paper, Typography, TextField, Button, Box, Link, Alert, InputAdornment, IconButton } from '@mui/material';
+import { Paper, Typography, TextField, Button, Box, Link, Alert, InputAdornment, IconButton, CircularProgress } from '@mui/material';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
-import { collection, addDoc, getDocs, query, where } from 'firebase/firestore';
-import { createUserWithEmailAndPassword, sendEmailVerification, reload } from 'firebase/auth';
+import { collection, setDoc, doc, getDoc, serverTimestamp } from 'firebase/firestore';
+import { 
+  createUserWithEmailAndPassword, 
+  sendEmailVerification, 
+  reload, 
+  onAuthStateChanged, 
+  signInWithEmailAndPassword 
+} from 'firebase/auth';
 import { db, auth } from '../firebase';
-import CryptoJS from 'crypto-js';
 
 export default function Register() {
   const navigate = useNavigate();
@@ -19,6 +24,7 @@ export default function Register() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [verificationPending, setVerificationPending] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [tempUserData, setTempUserData] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -38,79 +44,184 @@ export default function Register() {
 
   useEffect(() => {
     let verificationCheck;
+    let attempts = 0;
+    const MAX_ATTEMPTS = 30; // 60 seconds (30 attempts × 2 seconds)
+    
     if (verificationPending && tempUserData) {
+      // Set up auth state listener for verification
+      const unsubscribe = onAuthStateChanged(auth, async (user) => {
+        if (user && user.uid === tempUserData.uid) {
+          try {
+            await reload(user);
+            
+            if (user.emailVerified) {
+              clearInterval(verificationCheck);
+              unsubscribe();
+              
+              try {
+                setLoading(true);
+                
+                // Make sure we're signed in before writing to Firestore
+                if (!auth.currentUser) {
+                  // Silent re-authentication if needed
+                  await signInWithEmailAndPassword(auth, formData.email.toLowerCase().trim(), formData.password);
+                }
+                
+                // Create or update user document
+                await setDoc(doc(db, 'users', user.uid), {
+                  uid: user.uid,
+                  firstName: formData.firstName,
+                  lastName: formData.lastName,
+                  fullName: `${formData.firstName} ${formData.lastName}`,
+                  email: formData.email.toLowerCase().trim(),
+                  emailVerified: true,
+                  createdAt: serverTimestamp(),
+                  updatedAt: serverTimestamp()
+                });
+
+                navigate('/login', { 
+                  state: { 
+                    verificationSuccess: true,
+                    message: 'Email verified! Account created successfully.' 
+                  }
+                });
+                
+              } catch (error) {
+                console.error('Firestore error:', error);
+                setError(`Error creating user profile: ${error.message}`);
+                setLoading(false);
+              }
+            }
+          } catch (error) {
+            console.error('Auth state check error:', error);
+          }
+        }
+      });
+      
+      // Backup interval check
       verificationCheck = setInterval(async () => {
         try {
-          await reload(tempUserData);
-          
-          if (tempUserData.emailVerified) {
+          attempts++;
+          if (attempts >= MAX_ATTEMPTS) {
             clearInterval(verificationCheck);
+            setError('Verification timeout. Please try logging in or request a new verification email.');
+            setVerificationPending(false);
+            return;
+          }
+          
+          // Try to reload the current user if available
+          const currentUser = auth.currentUser;
+          if (currentUser) {
+            await reload(currentUser);
             
-            try {
-              // Add verified user to Firestore
-              await addDoc(collection(db, 'users'), {
-                uid: tempUserData.uid,
-                firstName: formData.firstName,
-                lastName: formData.lastName,
-                fullName: `${formData.firstName} ${formData.lastName}`,
-                email: formData.email,
-                emailVerified: true,
-                createdAt: new Date().toISOString()
-              });
-
-              // Immediately navigate to login without changing state
-              navigate('/login', { 
-                state: { 
-                  verificationSuccess: true,
-                  message: 'Email verified! Account created successfully.' 
-                }
-              });
+            if (currentUser.emailVerified) {
+              clearInterval(verificationCheck);
               
-            } catch (error) {
-              console.error('Firestore error:', error);
-              setError('Error creating user profile. Please contact support.');
+              try {
+                // Create or update user profile
+                await setDoc(doc(db, 'users', currentUser.uid), {
+                  uid: currentUser.uid,
+                  firstName: formData.firstName,
+                  lastName: formData.lastName,
+                  fullName: `${formData.firstName} ${formData.lastName}`,
+                  email: formData.email.toLowerCase().trim(),
+                  emailVerified: true,
+                  createdAt: serverTimestamp(),
+                  updatedAt: serverTimestamp()
+                });
+
+                navigate('/login', { 
+                  state: { 
+                    verificationSuccess: true,
+                    message: 'Email verified! Account created successfully.' 
+                  }
+                });
+              } catch (error) {
+                console.error('Firestore error in interval check:', error);
+                setError(`Error creating user profile: ${error.message}`);
+              }
             }
           }
         } catch (error) {
           console.error('Verification check error:', error);
         }
       }, 2000);
+      
+      return () => {
+        if (verificationCheck) clearInterval(verificationCheck);
+        if (unsubscribe) unsubscribe();
+      };
     }
-
-    return () => {
-      if (verificationCheck) {
-        clearInterval(verificationCheck);
-      }
-    };
   }, [verificationPending, tempUserData, formData, navigate]);
+
+  const validateForm = () => {
+    if (formData.firstName.trim() === '' || formData.lastName.trim() === '') {
+      setError('First name and last name are required');
+      return false;
+    }
+    
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      setError('Please enter a valid email address');
+      return false;
+    }
+    
+    // Password validation - at least 6 chars
+    if (formData.password.length < 6) {
+      setError('Password must be at least 6 characters long');
+      return false;
+    }
+    
+    // Password matching
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match');
+      return false;
+    }
+    
+    return true;
+  };
 
   const handleRegister = async (e) => {
     e.preventDefault();
     setError('');
     setSuccess('');
-    setVerificationPending(false);
-
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
+    setLoading(true);
+    
+    if (!validateForm()) {
+      setLoading(false);
       return;
     }
 
     try {
-      // Check if email already exists in Firestore
-      const q = query(collection(db, 'users'), where('email', '==', formData.email));
-      const querySnapshot = await getDocs(q);
+      // Normalize email to lowercase and trim whitespace
+      const normalizedEmail = formData.email.toLowerCase().trim();
       
-      if (!querySnapshot.empty) {
-        setError('Email already exists');
-        return;
-      }
-
       // Create user in Firebase Authentication
       const userCredential = await createUserWithEmailAndPassword(
         auth,
-        formData.email,
+        normalizedEmail,
         formData.password
       );
+
+      // Only create initial profile if we're already authenticated
+      if (auth.currentUser) {
+        try {
+          // Create temporary user document (will be updated after verification)
+          await setDoc(doc(db, 'users', userCredential.user.uid), {
+            uid: userCredential.user.uid,
+            firstName: formData.firstName,
+            lastName: formData.lastName,
+            fullName: `${formData.firstName} ${formData.lastName}`,
+            email: normalizedEmail,
+            emailVerified: false,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp()
+          });
+        } catch (profileErr) {
+          console.warn("Could not create initial profile, will create after verification:", profileErr);
+        }
+      }
 
       // Store temp user data and send verification email
       setTempUserData(userCredential.user);
@@ -122,16 +233,35 @@ export default function Register() {
         'Once verified, you will be automatically redirected to the login page. ' +
         'Please do not close this window.'
       );
-
+      
     } catch (err) {
       let errorMessage = 'Failed to register. Please try again.';
-      if (err.code === 'auth/email-already-in-use') {
-        errorMessage = 'Email is already registered.';
-      } else if (err.code === 'auth/weak-password') {
-        errorMessage = 'Password should be at least 6 characters.';
+      console.error('Registration error code:', err.code);
+      console.error('Registration full error:', err);
+      
+      switch (err.code) {
+        case 'auth/email-already-in-use':
+          errorMessage = 'Email is already registered.';
+          break;
+        case 'auth/weak-password':
+          errorMessage = 'Password should be at least 6 characters.';
+          break;
+        case 'auth/invalid-email':
+          errorMessage = 'The email address is not valid.';
+          break;
+        case 'auth/network-request-failed':
+          errorMessage = 'Network error. Please check your connection and try again.';
+          break;
+        case 'auth/too-many-requests':
+          errorMessage = 'Too many attempts. Please try again later.';
+          break;
+        default:
+          errorMessage = `Registration failed: ${err.message || 'Unknown error'}`;
       }
+      
       setError(errorMessage);
-      console.error('Registration error:', err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -183,6 +313,7 @@ export default function Register() {
             onChange={handleChange}
             required
             variant="outlined"
+            disabled={loading}
           />
           <TextField
             fullWidth
@@ -193,6 +324,7 @@ export default function Register() {
             onChange={handleChange}
             required
             variant="outlined"
+            disabled={loading}
           />
           <TextField
             fullWidth
@@ -204,6 +336,7 @@ export default function Register() {
             onChange={handleChange}
             required
             variant="outlined"
+            disabled={loading}
           />
           <TextField
             fullWidth
@@ -215,6 +348,7 @@ export default function Register() {
             onChange={handleChange}
             required
             variant="outlined"
+            disabled={loading}
             InputProps={{
               endAdornment: (
                 <InputAdornment position="end">
@@ -223,6 +357,7 @@ export default function Register() {
                     onClick={handleClickShowPassword}
                     onMouseDown={handleMouseDownPassword}
                     edge="end"
+                    disabled={loading}
                   >
                     {showPassword ? <VisibilityOff /> : <Visibility />}
                   </IconButton>
@@ -240,6 +375,7 @@ export default function Register() {
             onChange={handleChange}
             required
             variant="outlined"
+            disabled={loading}
             InputProps={{
               endAdornment: (
                 <InputAdornment position="end">
@@ -248,6 +384,7 @@ export default function Register() {
                     onClick={handleClickShowConfirmPassword}
                     onMouseDown={handleMouseDownPassword}
                     edge="end"
+                    disabled={loading}
                   >
                     {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
                   </IconButton>
@@ -261,8 +398,9 @@ export default function Register() {
             variant="contained"
             color="primary"
             sx={{ mt: 2 }}
+            disabled={loading}
           >
-            Register
+            {loading ? <CircularProgress size={24} /> : 'Register'}
           </Button>
         </form>
         <Box sx={{ mt: 2, textAlign: 'center' }}>
