@@ -130,7 +130,7 @@ function ResponsiveAppBar() {
                 textDecoration: 'none',
               }}
             >
-              TopBliss
+              topbliss Solutions Inc.
             </Typography>
 
             <Box sx={{ flexGrow: 1, display: { xs: 'flex', md: 'none' } }}>
