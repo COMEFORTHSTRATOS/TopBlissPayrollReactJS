@@ -124,13 +124,14 @@ function ResponsiveAppBar() {
               sx={{
                 mr: 2,
                 display: { xs: 'none', md: 'flex' },
+                fontFamily: '"League Spartan", sans-serif',
                 fontWeight: 700,
                 letterSpacing: '.1rem',
                 color: 'inherit',
                 textDecoration: 'none',
               }}
             >
-              topbliss Solutions Inc.
+              Top Bliss Solutions Inc.
             </Typography>
 
             <Box sx={{ flexGrow: 1, display: { xs: 'flex', md: 'none' } }}>
@@ -179,6 +180,7 @@ function ResponsiveAppBar() {
                 mr: 2,
                 display: { xs: 'flex', md: 'none' },
                 flexGrow: 1,
+                fontFamily: '"League Spartan", sans-serif',
                 fontWeight: 700,
                 color: 'inherit',
                 textDecoration: 'none',
@@ -205,7 +207,8 @@ function ResponsiveAppBar() {
                 sx={{ 
                   mr: 2,
                   color: 'inherit',
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  fontFamily: '"League Spartan", sans-serif',
                 }}
                 onClick={handleOpenUserMenu}
               >
