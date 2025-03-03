@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import Payroll from './pages/Payroll';
 import Employees from './pages/Employees';
 import Home from './pages/Home';
+import Attendance from './pages/Attendance';
 import './styles.css';
 import ResponsiveAppBar from './components/ResponsiveAppBar';
 import Login from './Authentication/Login';
@@ -31,7 +32,14 @@ function AppRoutes() {
                             <Employees />
                         </>
                     } />
+                    <Route path="/attendance" element={
+                        <>
+                            <ResponsiveAppBar />aa
+                            <Attendance />
+                        </>
+                    } />
                 </Routes>
+                
             </div>
         </Router>
     );

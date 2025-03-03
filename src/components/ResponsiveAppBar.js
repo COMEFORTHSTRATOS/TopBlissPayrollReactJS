@@ -47,7 +47,7 @@ function ResponsiveAppBar() {
     { name: 'Home', path: '/home' },
     { name: 'Employees', path: '/employees' },
     { name: 'Payroll', path: '/payroll' },
-    
+     {name: 'Attendance', path: '/attendance'} 
   ];
 
   const settings = [

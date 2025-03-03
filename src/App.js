@@ -6,6 +6,7 @@ import Register from './Authentication/Register';
 import Home from './Home';
 import Payroll from './Features/Payroll';
 import Employees from './Features/Employees';
+import Attendance from './Features/Attendance';
 import { AuthProvider } from './contexts/AuthContext';
 import PrivateRoute from './components/PrivateRoute';
 
@@ -39,7 +40,18 @@ function App() {
                 <Employees />
               </PrivateRoute>
             } 
+              
           />
+      <Route 
+            path="/attendance" 
+            element={
+              <PrivateRoute>
+                <Attendance />
+              </PrivateRoute>
+            } 
+              
+          />
+          
           <Route path="/" element={<Navigate to="/home" replace />} />
         </Routes>
       </AuthProvider>
