@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { AppBar, Box, Toolbar, IconButton, Typography, Menu, Container, Button, MenuItem, Tooltip } from '@mui/material';
+import { AppBar, Box, Toolbar, IconButton, Typography, Menu, Container, Button, MenuItem } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -47,7 +47,7 @@ function ResponsiveAppBar() {
     { name: 'Home', path: '/home' },
     { name: 'Employees', path: '/employees' },
     { name: 'Payroll', path: '/payroll' },
-     {name: 'Attendance', path: '/attendance'} 
+     {name: 'Attendance',path: '/attendance'} 
   ];
 
   const settings = [

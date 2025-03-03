@@ -7,36 +7,37 @@ import Attendance from './pages/Attendance';
 import './styles.css';
 import ResponsiveAppBar from './components/ResponsiveAppBar';
 import Login from './Authentication/Login';
+import PageTransition from './components/PageTransition';
 
 function AppRoutes() {
     return (
         <Router>
             <div className="App">
                 <Routes>
-                    <Route path="/" element={<Login />} />
+                    <Route path="/" element={<PageTransition><Login /></PageTransition>} />
                     <Route path="/home" element={
-                        <>
+                        <PageTransition>
                             <ResponsiveAppBar />
                             <Home />
-                        </>
+                        </PageTransition>
                     } />
                     <Route path="/payroll" element={
-                        <>
+                        <PageTransition>
                             <ResponsiveAppBar />
                             <Payroll />
-                        </>
+                        </PageTransition>
                     } />
                     <Route path="/employees" element={
-                        <>
+                        <PageTransition>
                             <ResponsiveAppBar />
                             <Employees />
-                        </>
+                        </PageTransition>
                     } />
                     <Route path="/attendance" element={
-                        <>
-                            <ResponsiveAppBar />aa
+                        <PageTransition>
+                            <ResponsiveAppBar />
                             <Attendance />
-                        </>
+                        </PageTransition>
                     } />
                 </Routes>
                 

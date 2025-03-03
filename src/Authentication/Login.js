@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link as RouterLink, useLocation } from 'react-router-dom';
-import { Paper, Typography, TextField, Button, Box, Link, Alert, InputAdornment, IconButton } from '@mui/material';
+import { Paper, Typography, TextField, Button, Box, Link, Alert, InputAdornment, IconButton, Slide } from '@mui/material';
 import { signInWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
 import { auth } from '../firebase';
@@ -23,6 +23,7 @@ export default function Login() {
     location.state?.verificationSuccess ? location.state.message : ''
   );
   const [showPassword, setShowPassword] = useState(false);
+  const [show, setShow] = React.useState(false);
 
   // Clear location state after reading it
   useEffect(() => {
@@ -30,6 +31,10 @@ export default function Login() {
       window.history.replaceState({}, document.title);
     }
   }, [location]);
+
+  useEffect(() => {
+    setShow(true);
+  }, []);
 
   const handleResendVerification = async () => {
     try {
@@ -103,96 +108,98 @@ export default function Login() {
         backgroundColor: '#f5f5f5'
       }}
     >
-      <Paper
-        elevation={3}
-        sx={{
-          p: 4,
-          width: '100%',
-          maxWidth: 300,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 2
-        }}
-      >
-        <Typography variant="h6" component="h1" gutterBottom>
-          <Box sx={{ textAlign: 'center', mb: 2 }}>
-            <img src={loginpage} alt="Login Page" style={{ maxWidth: '100%', height: 'auto' }} />
-          </Box>
-        </Typography>
-        <Typography variant="body2" gutterBottom>
-          Sign in to continue.
-        </Typography>
-        {successMessage && <Alert severity="success">{successMessage}</Alert>}
-        {error && (
-          <Alert severity="error">
-            {error}
-            {showResendButton && (
-              <Button
-                color="inherit"
-                size="small"
-                onClick={handleResendVerification}
-                sx={{ ml: 1 }}
-              >
-                Resend Verification
-              </Button>
-            )}
-          </Alert>
-        )}
-        <form onSubmit={handleLogin}>
-          <TextField
-            fullWidth
-            margin="normal"
-            label="Email"
-            type="email"
-            required
-            variant="outlined"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-          <TextField
-            fullWidth
-            margin="normal"
-            label="Password"
-            type={showPassword ? 'text' : 'password'}
-            required
-            variant="outlined"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            InputProps={{
-              endAdornment: (
-                <InputAdornment position="end">
-                  <IconButton
-                    aria-label="toggle password visibility"
-                    onClick={handleClickShowPassword}
-                    onMouseDown={handleMouseDownPassword}
-                    edge="end"
-                  >
-                    {showPassword ? <VisibilityOff /> : <Visibility />}
-                  </IconButton>
-                </InputAdornment>
-              ),
-            }}
-          />
-          <Button
-            type="submit"
-            fullWidth
-            variant="contained"
-            color="primary"
-            sx={{ mt: 2 }}
-            disabled={loading}
-          >
-            {loading ? 'Logging in...' : 'Log in'}
-          </Button>
-        </form>
-        <Box sx={{ mt: 2, textAlign: 'center' }}>
-          <Typography variant="body2">
-            Don't have an account?{' '}
-            <Link component={RouterLink} to="/register" underline="hover">
-              Sign up
-            </Link>
+      <Slide direction="up" in={show} timeout={500}>
+        <Paper
+          elevation={3}
+          sx={{
+            p: 4,
+            width: '100%',
+            maxWidth: 300,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 2
+          }}
+        >
+          <Typography variant="h6" component="h1" gutterBottom>
+            <Box sx={{ textAlign: 'center', mb: 2 }}>
+              <img src={loginpage} alt="Login Page" style={{ maxWidth: '100%', height: 'auto' }} />
+            </Box>
           </Typography>
-        </Box>
-      </Paper>
+          <Typography variant="body2" gutterBottom>
+            Sign in to continue.
+          </Typography>
+          {successMessage && <Alert severity="success">{successMessage}</Alert>}
+          {error && (
+            <Alert severity="error">
+              {error}
+              {showResendButton && (
+                <Button
+                  color="inherit"
+                  size="small"
+                  onClick={handleResendVerification}
+                  sx={{ ml: 1 }}
+                >
+                  Resend Verification
+                </Button>
+              )}
+            </Alert>
+          )}
+          <form onSubmit={handleLogin}>
+            <TextField
+              fullWidth
+              margin="normal"
+              label="Email"
+              type="email"
+              required
+              variant="outlined"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+            <TextField
+              fullWidth
+              margin="normal"
+              label="Password"
+              type={showPassword ? 'text' : 'password'}
+              required
+              variant="outlined"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      aria-label="toggle password visibility"
+                      onClick={handleClickShowPassword}
+                      onMouseDown={handleMouseDownPassword}
+                      edge="end"
+                    >
+                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+            />
+            <Button
+              type="submit"
+              fullWidth
+              variant="contained"
+              color="primary"
+              sx={{ mt: 2 }}
+              disabled={loading}
+            >
+              {loading ? 'Logging in...' : 'Log in'}
+            </Button>
+          </form>
+          <Box sx={{ mt: 2, textAlign: 'center' }}>
+            <Typography variant="body2">
+              Don't have an account?{' '}
+              <Link component={RouterLink} to="/register" underline="hover">
+                Sign up
+              </Link>
+            </Typography>
+          </Box>
+        </Paper>
+      </Slide>
     </Box>
   );
 }

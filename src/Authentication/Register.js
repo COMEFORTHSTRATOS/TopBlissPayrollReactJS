@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
-import { Paper, Typography, TextField, Button, Box, Link, Alert, InputAdornment, IconButton, CircularProgress } from '@mui/material';
+import { Paper, Typography, TextField, Button, Box, Link, Alert, InputAdornment, IconButton, CircularProgress, Slide } from '@mui/material';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
 import { collection, setDoc, doc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { 
@@ -28,6 +28,11 @@ export default function Register() {
   const [tempUserData, setTempUserData] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [show, setShow] = React.useState(false);
+
+  useEffect(() => {
+    setShow(true);
+  }, []);
 
   const handleChange = (e) => {
     setFormData({
@@ -275,143 +280,145 @@ export default function Register() {
         backgroundColor: '#f5f5f5'
       }}
     >
-      <Paper
-        elevation={3}
-        sx={{
-          p: 4,
-          width: '90%',
-          maxWidth: 400,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 2
-        }}
-      >
-        <Typography variant="h6" component="h1" gutterBottom>
-          <b>Create Account</b>
-        </Typography>
-        <Typography variant="body2" gutterBottom>
-          Fill in your details to register.
-        </Typography>
-        
-        {error && <Alert severity="error">{error}</Alert>}
-        {success && <Alert severity="success">{success}</Alert>}
-        {verificationPending && (
-          <Alert severity="info">
-            Verification email sent! Please check your email and click the verification link.
-            This page will automatically redirect you once verified.
-            Keep this window open.
-          </Alert>
-        )}
-        
-        <form onSubmit={handleRegister} style={{ display: verificationPending ? 'none' : 'block' }}>
-          <TextField
-            fullWidth
-            margin="normal"
-            label="First Name"
-            name="firstName"
-            value={formData.firstName}
-            onChange={handleChange}
-            required
-            variant="outlined"
-            disabled={loading}
-          />
-          <TextField
-            fullWidth
-            margin="normal"
-            label="Last Name"
-            name="lastName"
-            value={formData.lastName}
-            onChange={handleChange}
-            required
-            variant="outlined"
-            disabled={loading}
-          />
-          <TextField
-            fullWidth
-            margin="normal"
-            label="Email"
-            name="email"
-            type="email"
-            value={formData.email}
-            onChange={handleChange}
-            required
-            variant="outlined"
-            disabled={loading}
-          />
-          <TextField
-            fullWidth
-            margin="normal"
-            label="Password"
-            name="password"
-            type={showPassword ? 'text' : 'password'}
-            value={formData.password}
-            onChange={handleChange}
-            required
-            variant="outlined"
-            disabled={loading}
-            InputProps={{
-              endAdornment: (
-                <InputAdornment position="end">
-                  <IconButton
-                    aria-label="toggle password visibility"
-                    onClick={handleClickShowPassword}
-                    onMouseDown={handleMouseDownPassword}
-                    edge="end"
-                    disabled={loading}
-                  >
-                    {showPassword ? <VisibilityOff /> : <Visibility />}
-                  </IconButton>
-                </InputAdornment>
-              ),
-            }}
-          />
-          <TextField
-            fullWidth
-            margin="normal"
-            label="Confirm Password"
-            name="confirmPassword"
-            type={showConfirmPassword ? 'text' : 'password'}
-            value={formData.confirmPassword}
-            onChange={handleChange}
-            required
-            variant="outlined"
-            disabled={loading}
-            InputProps={{
-              endAdornment: (
-                <InputAdornment position="end">
-                  <IconButton
-                    aria-label="toggle confirm password visibility"
-                    onClick={handleClickShowConfirmPassword}
-                    onMouseDown={handleMouseDownPassword}
-                    edge="end"
-                    disabled={loading}
-                  >
-                    {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
-                  </IconButton>
-                </InputAdornment>
-              ),
-            }}
-          />
-          <Button
-            type="submit"
-            fullWidth
-            variant="contained"
-            color="primary"
-            sx={{ mt: 2 }}
-            disabled={loading}
-          >
-            {loading ? <CircularProgress size={24} /> : 'Register'}
-          </Button>
-        </form>
-        <Box sx={{ mt: 2, textAlign: 'center' }}>
-          <Typography variant="body2">
-            Already have an account?{' '}
-            <Link component={RouterLink} to="/login" underline="hover">
-              Sign in
-            </Link>
+      <Slide direction="up" in={show} timeout={500}>
+        <Paper
+          elevation={3}
+          sx={{
+            p: 4,
+            width: '90%',
+            maxWidth: 400,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 2
+          }}
+        >
+          <Typography variant="h6" component="h1" gutterBottom>
+            <b>Create Account</b>
           </Typography>
-        </Box>
-      </Paper>
+          <Typography variant="body2" gutterBottom>
+            Fill in your details to register.
+          </Typography>
+          
+          {error && <Alert severity="error">{error}</Alert>}
+          {success && <Alert severity="success">{success}</Alert>}
+          {verificationPending && (
+            <Alert severity="info">
+              Verification email sent! Please check your email and click the verification link.
+              This page will automatically redirect you once verified.
+              Keep this window open.
+            </Alert>
+          )}
+          
+          <form onSubmit={handleRegister} style={{ display: verificationPending ? 'none' : 'block' }}>
+            <TextField
+              fullWidth
+              margin="normal"
+              label="First Name"
+              name="firstName"
+              value={formData.firstName}
+              onChange={handleChange}
+              required
+              variant="outlined"
+              disabled={loading}
+            />
+            <TextField
+              fullWidth
+              margin="normal"
+              label="Last Name"
+              name="lastName"
+              value={formData.lastName}
+              onChange={handleChange}
+              required
+              variant="outlined"
+              disabled={loading}
+            />
+            <TextField
+              fullWidth
+              margin="normal"
+              label="Email"
+              name="email"
+              type="email"
+              value={formData.email}
+              onChange={handleChange}
+              required
+              variant="outlined"
+              disabled={loading}
+            />
+            <TextField
+              fullWidth
+              margin="normal"
+              label="Password"
+              name="password"
+              type={showPassword ? 'text' : 'password'}
+              value={formData.password}
+              onChange={handleChange}
+              required
+              variant="outlined"
+              disabled={loading}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      aria-label="toggle password visibility"
+                      onClick={handleClickShowPassword}
+                      onMouseDown={handleMouseDownPassword}
+                      edge="end"
+                      disabled={loading}
+                    >
+                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+            />
+            <TextField
+              fullWidth
+              margin="normal"
+              label="Confirm Password"
+              name="confirmPassword"
+              type={showConfirmPassword ? 'text' : 'password'}
+              value={formData.confirmPassword}
+              onChange={handleChange}
+              required
+              variant="outlined"
+              disabled={loading}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      aria-label="toggle confirm password visibility"
+                      onClick={handleClickShowConfirmPassword}
+                      onMouseDown={handleMouseDownPassword}
+                      edge="end"
+                      disabled={loading}
+                    >
+                      {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+            />
+            <Button
+              type="submit"
+              fullWidth
+              variant="contained"
+              color="primary"
+              sx={{ mt: 2 }}
+              disabled={loading}
+            >
+              {loading ? <CircularProgress size={24} /> : 'Register'}
+            </Button>
+          </form>
+          <Box sx={{ mt: 2, textAlign: 'center' }}>
+            <Typography variant="body2">
+              Already have an account?{' '}
+              <Link component={RouterLink} to="/login" underline="hover">
+                Sign in
+              </Link>
+            </Typography>
+          </Box>
+        </Paper>
+      </Slide>
     </Box>
   );
 }
