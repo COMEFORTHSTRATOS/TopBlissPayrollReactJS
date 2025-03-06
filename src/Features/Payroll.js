@@ -218,7 +218,7 @@ function Payroll() {
             Payroll Management
           </Typography>
           <Typography variant="body1" paragraph>
-            Manage your company's payroll esfficiently with automatic SSS, PhilHealth and Pag-IBIG deductions.
+           payroll hahahahaha antok nako hahaha
           </Typography>
           
           <Grid container spacing={3}>
