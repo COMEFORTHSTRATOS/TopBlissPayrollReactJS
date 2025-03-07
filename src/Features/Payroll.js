@@ -45,7 +45,7 @@ function Payroll() {
   // Updated SSS contribution calculation based on the table from the image
   const calculateSSSContribution = (monthlySalary) => {
     // SSS Contribution Table based on the image provided
-    if (monthlySalary < 3250) return 135; // Minimum
+    if (monthlySalary < 3250) return 135;
     
     // Define ranges based on the contribution table from the image
     const ranges = [
@@ -143,15 +143,15 @@ function Payroll() {
     const taxableIncome = monthlySalarySemiMonthly - totalContributions;
 
     // Apply tax brackets
-    if (taxableIncome <= 10417) { // 250,000 annually / 24 semi-monthly periods
+    if (taxableIncome <= 10417) { 
       return 0;
-    } else if (taxableIncome <= 16667) { // 400,000 annually / 24
+    } else if (taxableIncome <= 16667) { 
       return (taxableIncome - 10417) * 0.20;
-    } else if (taxableIncome <= 33333) { // 800,000 annually / 24
+    } else if (taxableIncome <= 33333) { 
       return 1250 + (taxableIncome - 16667) * 0.25;
-    } else if (taxableIncome <= 83333) { // 2,000,000 annually / 24
+    } else if (taxableIncome <= 83333) { 
       return 5416.50 + (taxableIncome - 33333) * 0.30;
-    } else if (taxableIncome <= 333333) { // 8,000,000 annually / 24
+    } else if (taxableIncome <= 333333) { 
       return 20416.50 + (taxableIncome - 83333) * 0.32;
     } else {
       return 100416.50 + (taxableIncome - 333333) * 0.35;
@@ -303,7 +303,7 @@ function Payroll() {
             <Grid item xs={12} md={6}>
               <Paper elevation={3} sx={{ p: 3 }}>
                 <Typography variant="h6" gutterBottom>
-                  Payroll Calculation Results
+                  Payroll Computation results
                 </Typography>
                 <TableContainer>
                   <Table>
@@ -336,7 +336,7 @@ function Payroll() {
                         <TableCell align="right">{calculation.lateDeduction.toFixed(2)}</TableCell>
                       </TableRow>
                       <TableRow>
-                        <TableCell>SSS Contribution</TableCell>
+                        <TableCell>SSS</TableCell>
                         <TableCell align="right">{calculation.sssContribution.toFixed(2)}</TableCell>
                       </TableRow>
                       <TableRow>
