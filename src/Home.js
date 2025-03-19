@@ -15,7 +15,7 @@ function Home() {
       <Zoom in={show} timeout={300}>
         <Container sx={{ mt: 4 }}>
           <Typography variant="h5" gutterBottom>
-            Welcome tongdgfdhytgfd TopBliss Payroll
+            Welcome to TopBliss Payroll
           </Typography>
           <Typography variant="body1">
             Welcome to your Employee Management System. You can manage your employees and payroll here.
