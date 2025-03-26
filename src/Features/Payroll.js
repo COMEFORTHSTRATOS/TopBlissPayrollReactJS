@@ -299,7 +299,7 @@ function Payroll() {
               </Paper>
             </Grid>
             
-            {/* Calculations and Results */}
+            {/* Calculations and Results  remove IncomeTax soon*/}
             <Grid item xs={12} md={6}>
               <Paper elevation={3} sx={{ p: 3 }}>
                 <Typography variant="h6" gutterBottom>
@@ -348,7 +348,7 @@ function Payroll() {
                         <TableCell align="right">{calculation.pagIbigContribution.toFixed(2)}</TableCell>
                       </TableRow>
                       <TableRow>
-                        <TableCell>Income Tax</TableCell>
+                        <TableCell>Income Tax</TableCell> 
                         <TableCell align="right">{calculation.incomeTax.toFixed(2)}</TableCell>
                       </TableRow>
                       <TableRow>
