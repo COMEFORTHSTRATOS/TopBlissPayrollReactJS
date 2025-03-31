@@ -19,7 +19,8 @@ import {
   Paper,
   IconButton,
   Tooltip,
-  Zoom 
+  Zoom,
+  InputAdornment
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
@@ -37,7 +38,8 @@ function Employees() {
     lastName: '',
     email: '',
     position: '',
-    startDate: ''
+    startDate: '',
+    salary: '' // Add salary field
   });
   const [employees, setEmployees] = useState([]);
   const [show, setShow] = React.useState(false);
@@ -75,7 +77,8 @@ function Employees() {
       lastName: '',
       email: '',
       position: '',
-      startDate: ''
+      startDate: '',
+      salary: ''
     });
   };
 
@@ -136,7 +139,8 @@ function Employees() {
       lastName: employee.lastName,
       email: employee.email,
       position: employee.position,
-      startDate: employee.startDate || ''
+      startDate: employee.startDate || '',
+      salary: employee.salary || ''
     });
     setIsEditing(true);
     setOpen(true);
@@ -191,6 +195,7 @@ function Employees() {
                   <TableCell>Name</TableCell>
                   <TableCell>Email</TableCell>
                   <TableCell>Position</TableCell>
+                  <TableCell>Salary</TableCell>
                   <TableCell>Start Date</TableCell>
                   <TableCell>Status</TableCell>
                   <TableCell>Actions</TableCell>
@@ -204,6 +209,7 @@ function Employees() {
                     </TableCell>
                     <TableCell>{employee.email}</TableCell>
                     <TableCell>{employee.position}</TableCell>
+                    <TableCell>₱{employee.salary ? parseFloat(employee.salary).toLocaleString() : '-'}</TableCell>
                     <TableCell>
                       {employee.startDate ? new Date(employee.startDate).toLocaleDateString() : '-'}
                     </TableCell>
@@ -226,7 +232,7 @@ function Employees() {
                 ))}
                 {employees.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={6} align="center">
+                    <TableCell colSpan={7} align="center">
                       No employees found
                     </TableCell>
                   </TableRow>
@@ -296,6 +302,19 @@ function Employees() {
                   shrink: true,
                 }}
                 value={newEmployee.startDate}
+                onChange={handleInputChange}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                name="salary"
+                label="Monthly Salary"
+                fullWidth
+                type="number"
+                InputProps={{
+                  startAdornment: <InputAdornment position="start">₱</InputAdornment>,
+                }}
+                value={newEmployee.salary}
                 onChange={handleInputChange}
               />
             </Grid>
