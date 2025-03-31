@@ -39,7 +39,7 @@ function Employees() {
     email: '',
     position: '',
     startDate: '',
-    salary: '' // Add salary field
+    salary: '' 
   });
   const [employees, setEmployees] = useState([]);
   const [show, setShow] = React.useState(false);

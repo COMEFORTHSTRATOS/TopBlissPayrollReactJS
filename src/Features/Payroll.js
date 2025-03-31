@@ -16,7 +16,8 @@ function Payroll() {
     nonTaxableAllowance: 0,
     absences: 0,
     lateMinutes: 0,
-    overtimeHours: 0
+    overtimeHours: 0,
+    sickLeave: 0
   });
   const [calculation, setCalculation] = useState({
     dailyRate: 0,
@@ -30,6 +31,7 @@ function Payroll() {
     incomeTax: 0,
     totalDeductions: 0,
     nonTaxableAllowance: 0,
+    sickLeavePay: 0,
     netPay: 0
   });
   const [employees, setEmployees] = useState([]);
@@ -165,13 +167,14 @@ function Payroll() {
   const calculatePayroll = () => {
     const semiMonthlyGross = payrollData.monthlySalary / 2;
     const semiMonthlyNonTaxable = payrollData.nonTaxableAllowance;
-    const dailyRate = payrollData.monthlySalary / 26;
-    const hourlyRate = dailyRate / 8;
+    const dailyRate = Number((payrollData.monthlySalary / 26).toFixed(2));
+    const hourlyRate = Number((dailyRate / 8).toFixed(2));
 
-    const absencesDeduction = payrollData.absences * dailyRate;
-    const lateDeduction = (payrollData.lateMinutes / 60) * hourlyRate;
-    const overtimeRate = payrollData.monthlySalary / 26 / 8 * 1.25;
-    const overtimePay = payrollData.overtimeHours * overtimeRate;
+    const absencesDeduction = Number((payrollData.absences * dailyRate).toFixed(2));
+    const lateDeduction = Number(((payrollData.lateMinutes / 60) * hourlyRate).toFixed(2));
+    const overtimeRate = Number(((payrollData.monthlySalary / 26 / 8) * 1.25).toFixed(2));
+    const overtimePay = Number((payrollData.overtimeHours * overtimeRate).toFixed(2));
+    const sickLeavePay = Number((payrollData.sickLeave * dailyRate).toFixed(2));
 
     const sssContribution = calculateSSSContribution(payrollData.monthlySalary);
     const philHealthContribution = calculatePhilHealthContribution(payrollData.monthlySalary);
@@ -188,7 +191,7 @@ function Payroll() {
                            sssContribution + philHealthContribution + 
                            pagIbigContribution + incomeTax;
 
-    const netPay = semiMonthlyGross + semiMonthlyNonTaxable + overtimePay - totalDeductions;
+    const netPay = semiMonthlyGross + semiMonthlyNonTaxable + overtimePay + sickLeavePay - totalDeductions;
 
     setCalculation({
       dailyRate,
@@ -202,6 +205,7 @@ function Payroll() {
       incomeTax,
       totalDeductions,
       nonTaxableAllowance: semiMonthlyNonTaxable,
+      sickLeavePay,
       netPay
     });
   };
@@ -298,6 +302,16 @@ function Payroll() {
                     />
                   </Grid>
                   <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Sick Leave (days)"
+                      name="sickLeave"
+                      type="number"
+                      value={payrollData.sickLeave || ''}
+                      onChange={handleInputChange}
+                    />
+                  </Grid>
+                  <Grid item xs={12}>
                     <Button 
                       variant="contained" 
                       color="primary" 
@@ -378,6 +392,10 @@ function Payroll() {
                       <TableRow>
                         <TableCell>Overtime Pay</TableCell>
                         <TableCell align="right">{calculation.overtimePay.toFixed(2)}</TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell>Sick Leave Pay</TableCell>
+                        <TableCell align="right">{calculation.sickLeavePay.toFixed(2)}</TableCell>
                       </TableRow>
                       <Divider />
                       <TableRow>
