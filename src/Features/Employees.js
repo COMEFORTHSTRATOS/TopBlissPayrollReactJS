@@ -20,7 +20,11 @@ import {
   IconButton,
   Tooltip,
   Zoom,
-  InputAdornment
+  InputAdornment,
+  MenuItem,
+  Select,
+  FormControl,
+  InputLabel
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
@@ -39,10 +43,26 @@ function Employees() {
     email: '',
     position: '',
     startDate: '',
-    salary: '' 
+    salary: '',
+    department: '' // Add department field
   });
   const [employees, setEmployees] = useState([]);
   const [show, setShow] = React.useState(false);
+
+  const departments = [
+    'ABLE',
+    'AI Support',
+    'Brand Development',
+    'Branding',
+    'Executive',
+    'Finance',
+    'Human Resources Administration',
+    'Logistics',
+    'Marketing',
+    'Marketplace',
+    'Telesales',
+    'IT'
+  ];
 
   useEffect(() => {
     fetchEmployees();
@@ -78,7 +98,8 @@ function Employees() {
       email: '',
       position: '',
       startDate: '',
-      salary: ''
+      salary: '',
+      department: ''
     });
   };
 
@@ -140,7 +161,8 @@ function Employees() {
       email: employee.email,
       position: employee.position,
       startDate: employee.startDate || '',
-      salary: employee.salary || ''
+      salary: employee.salary || '',
+      department: employee.department || ''
     });
     setIsEditing(true);
     setOpen(true);
@@ -195,6 +217,7 @@ function Employees() {
                   <TableCell>Name</TableCell>
                   <TableCell>Email</TableCell>
                   <TableCell>Position</TableCell>
+                  <TableCell>Department</TableCell>
                   <TableCell>Salary</TableCell>
                   <TableCell>Start Date</TableCell>
                   <TableCell>Status</TableCell>
@@ -209,6 +232,7 @@ function Employees() {
                     </TableCell>
                     <TableCell>{employee.email}</TableCell>
                     <TableCell>{employee.position}</TableCell>
+                    <TableCell>{employee.department || '-'}</TableCell>
                     <TableCell>₱{employee.salary ? parseFloat(employee.salary).toLocaleString() : '-'}</TableCell>
                     <TableCell>
                       {employee.startDate ? new Date(employee.startDate).toLocaleDateString() : '-'}
@@ -232,7 +256,7 @@ function Employees() {
                 ))}
                 {employees.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={7} align="center">
+                    <TableCell colSpan={8} align="center">
                       No employees found
                     </TableCell>
                   </TableRow>
@@ -291,6 +315,24 @@ function Employees() {
                 value={newEmployee.position}
                 onChange={handleInputChange}
               />
+            </Grid>
+            <Grid item xs={12}>
+              <FormControl fullWidth>
+                <InputLabel id="department-label">Department</InputLabel>
+                <Select
+                  labelId="department-label"
+                  name="department"
+                  value={newEmployee.department}
+                  label="Department"
+                  onChange={handleInputChange}
+                >
+                  {departments.map((dept) => (
+                    <MenuItem key={dept} value={dept}>
+                      {dept}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
             </Grid>
             <Grid item xs={12}>
               <TextField
