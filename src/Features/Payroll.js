@@ -22,7 +22,8 @@ function Payroll() {
     overtimeHours: 0,
     nightDifferentialHours: 0,
     specialHolidayHours: 0,
-    sickLeave: 0
+    sickLeave: 0,
+    adjustments: 0
   });
   const [calculation, setCalculation] = useState({
     dailyRate: 0,
@@ -39,6 +40,7 @@ function Payroll() {
     totalDeductions: 0,
     nonTaxableAllowance: 0,
     sickLeavePay: 0,
+    adjustments: 0,
     netPay: 0
   });
   const [employees, setEmployees] = useState([]);
@@ -196,6 +198,9 @@ function Payroll() {
     // Calculate special holiday pay without rounding
     const specialHolidayPay = (payrollData.monthlySalary / 26 / 8) * 0.3 * payrollData.specialHolidayHours;
 
+    // Get adjustments
+    const adjustments = payrollData.adjustments;
+
     // Calculate contributions
     const sssContribution = calculateSSSContribution(payrollData.monthlySalary);
     const philHealthContribution = calculatePhilHealthContribution(payrollData.monthlySalary);
@@ -215,7 +220,8 @@ function Payroll() {
 
     // Calculate net pay without rounding
     const netPay = semiMonthlyGross + semiMonthlyNonTaxable + overtimePay + 
-                 nightDifferentialPay + specialHolidayPay + sickLeavePay - totalDeductions;
+                 nightDifferentialPay + specialHolidayPay + sickLeavePay +
+                 adjustments - totalDeductions;
 
     setCalculation({
       dailyRate,
@@ -232,6 +238,7 @@ function Payroll() {
       totalDeductions,
       nonTaxableAllowance: semiMonthlyNonTaxable,
       sickLeavePay,
+      adjustments,
       netPay
     });
   };
@@ -363,6 +370,19 @@ function Payroll() {
                     />
                   </Grid>
                   <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Adjustments"
+                      name="adjustments"
+                      type="number"
+                      value={payrollData.adjustments || ''}
+                      onChange={handleInputChange}
+                      InputProps={{
+                        startAdornment: <InputAdornment position="start">₱</InputAdornment>,
+                      }}
+                    />
+                  </Grid>
+                  <Grid item xs={12}>
                     <Button 
                       variant="contained" 
                       color="primary" 
@@ -480,6 +500,10 @@ function Payroll() {
                       <TableRow>
                         <TableCell>Sick Leave Pay</TableCell>
                         <TableCell align="right">{formatCurrency(calculation.sickLeavePay)}</TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell>Adjustments</TableCell>
+                        <TableCell align="right">{formatCurrency(calculation.adjustments)}</TableCell>
                       </TableRow>
                       <Divider />
                       <TableRow>
