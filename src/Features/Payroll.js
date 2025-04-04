@@ -8,6 +8,9 @@ import {
 import ResponsiveAppBar from '../components/ResponsiveAppBar';
 import { db } from '../firebase';
 import { collection, getDocs, query, orderBy } from 'firebase/firestore';
+import { PDFDownloadLink } from '@react-pdf/renderer';
+import PayrollPDF from '../components/PayrollPDF';
+import { formatCurrency, formatNumber } from '../utils/numberFormat';
 
 function Payroll() {
   const [show, setShow] = useState(false);
@@ -210,6 +213,11 @@ function Payroll() {
     });
   };
 
+  const getSelectedEmployeeName = () => {
+    const employee = employees.find(emp => emp.id === selectedEmployee);
+    return employee ? `${employee.firstName} ${employee.lastName}` : 'Not Selected';
+  };
+
   return (
     <Box sx={{ flexGrow: 3 }}>
       <ResponsiveAppBar />
@@ -330,6 +338,31 @@ function Payroll() {
                 <Typography variant="h6" gutterBottom>
                   Payroll Computation results
                 </Typography>
+                {calculation.netPay > 0 && (
+                  <Box sx={{ mt: 2 }}>
+                    <PDFDownloadLink
+                      document={
+                        <PayrollPDF
+                          employeeName={getSelectedEmployeeName()}
+                          payrollData={payrollData}
+                          calculation={calculation}
+                        />
+                      }
+                      fileName={`payroll-${getSelectedEmployeeName()}.pdf`}
+                    >
+                      {({ loading }) => (
+                        <Button
+                          variant="contained"
+                          color="secondary"
+                          fullWidth
+                          disabled={loading}
+                        >
+                          {loading ? 'Generating PDF...' : 'Export to PDF'}
+                        </Button>
+                      )}
+                    </PDFDownloadLink>
+                  </Box>
+                )}
                 <TableContainer>
                   <Table>
                     <TableHead>
@@ -341,11 +374,11 @@ function Payroll() {
                     <TableBody>
                       <TableRow>
                         <TableCell>Daily Rate</TableCell>
-                        <TableCell align="right">{calculation.dailyRate.toFixed(2)}</TableCell>
+                        <TableCell align="right">{formatCurrency(calculation.dailyRate)}</TableCell>
                       </TableRow>
                       <TableRow>
                         <TableCell>Hourly Rate</TableCell>
-                        <TableCell align="right">{calculation.hourlyRate.toFixed(2)}</TableCell>
+                        <TableCell align="right">{formatCurrency(calculation.hourlyRate)}</TableCell>
                       </TableRow>
                       <TableRow>
                         <TableCell colSpan={2}>
@@ -354,31 +387,31 @@ function Payroll() {
                       </TableRow>
                       <TableRow>
                         <TableCell>Absences</TableCell>
-                        <TableCell align="right">{calculation.absencesDeduction.toFixed(2)}</TableCell>
+                        <TableCell align="right">{formatCurrency(calculation.absencesDeduction)}</TableCell>
                       </TableRow>
                       <TableRow>
                         <TableCell>Late</TableCell>
-                        <TableCell align="right">{calculation.lateDeduction.toFixed(2)}</TableCell>
+                        <TableCell align="right">{formatCurrency(calculation.lateDeduction)}</TableCell>
                       </TableRow>
                       <TableRow>
                         <TableCell>SSS</TableCell>
-                        <TableCell align="right">{calculation.sssContribution.toFixed(2)}</TableCell>
+                        <TableCell align="right">{formatCurrency(calculation.sssContribution)}</TableCell>
                       </TableRow>
                       <TableRow>
                         <TableCell>PhilHealth</TableCell>
-                        <TableCell align="right">{calculation.philHealthContribution.toFixed(2)}</TableCell>
+                        <TableCell align="right">{formatCurrency(calculation.philHealthContribution)}</TableCell>
                       </TableRow>
                       <TableRow>
                         <TableCell>Pag-IBIG</TableCell>
-                        <TableCell align="right">{calculation.pagIbigContribution.toFixed(2)}</TableCell>
+                        <TableCell align="right">{formatCurrency(calculation.pagIbigContribution)}</TableCell>
                       </TableRow>
                       <TableRow>
                         <TableCell>Income Tax</TableCell> 
-                        <TableCell align="right">{calculation.incomeTax.toFixed(2)}</TableCell>
+                        <TableCell align="right">{formatCurrency(calculation.incomeTax)}</TableCell>
                       </TableRow>
                       <TableRow>
                         <TableCell>Total Monthly Deductions</TableCell>
-                        <TableCell align="right">{calculation.totalDeductions.toFixed(2)}</TableCell>
+                        <TableCell align="right">{formatCurrency(calculation.totalDeductions)}</TableCell>
                       </TableRow>
                       <TableRow>
                         <TableCell colSpan={2}>
@@ -387,20 +420,20 @@ function Payroll() {
                       </TableRow>
                       <TableRow>
                         <TableCell>Non-Taxable Allowance</TableCell>
-                        <TableCell align="right">{calculation.nonTaxableAllowance.toFixed(2)}</TableCell>
+                        <TableCell align="right">{formatCurrency(calculation.nonTaxableAllowance)}</TableCell>
                       </TableRow>
                       <TableRow>
                         <TableCell>Overtime Pay</TableCell>
-                        <TableCell align="right">{calculation.overtimePay.toFixed(2)}</TableCell>
+                        <TableCell align="right">{formatCurrency(calculation.overtimePay)}</TableCell>
                       </TableRow>
                       <TableRow>
                         <TableCell>Sick Leave Pay</TableCell>
-                        <TableCell align="right">{calculation.sickLeavePay.toFixed(2)}</TableCell>
+                        <TableCell align="right">{formatCurrency(calculation.sickLeavePay)}</TableCell>
                       </TableRow>
                       <Divider />
                       <TableRow>
                         <TableCell><strong>Semi-Monthly Net Pay</strong></TableCell>
-                        <TableCell align="right"><strong>{calculation.netPay.toFixed(2)}</strong></TableCell>
+                        <TableCell align="right"><strong>{formatCurrency(calculation.netPay)}</strong></TableCell>
                       </TableRow>
                     </TableBody>
                   </Table>
