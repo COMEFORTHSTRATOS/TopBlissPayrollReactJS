@@ -1,46 +1,82 @@
-import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer';
+import { Document, Page, Text, View, StyleSheet, Image, Font } from '@react-pdf/renderer';
 import logo from '../assets/logobliss.png'; // Adjust the path to your logo
+
+// Register a standard PDF font that is formal and reliable
+Font.register({
+  family: 'Times-Roman',
+  fontWeight: 'normal',
+});
+
+Font.register({
+  family: 'Times-Bold',
+  fontWeight: 'bold',
+});
 
 const styles = StyleSheet.create({
   page: {
     flexDirection: 'column',
     backgroundColor: '#ffffff',
-    padding: 30
+    padding: 10, // Further reduced padding
+    fontFamily: 'Times-Roman',
+    // Updated to standard 4x6 inch size (288x432 points)
+    width: '288',
+    height: '432'
   },
   headerContainer: {
     flexDirection: 'row',
-    marginBottom: 20,
+    marginBottom: 5, // Smaller margin
     alignItems: 'center'
   },
   logo: {
-    width: 60,
-    height: 60,
-    marginRight: 10
+    width: 30, // Even smaller logo
+    height: 30,
+    marginRight: 3
   },
   headerText: {
     flexGrow: 1,
-    fontSize: 20,
-    textAlign: 'center'
+    fontSize: 12, // Smaller font
+    textAlign: 'center',
+    fontFamily: 'Times-Bold'
   },
   section: {
-    margin: 10,
-    padding: 10,
+    margin: 2, // Minimal margin
+    padding: 2, // Minimal padding
     flexGrow: 1
   },
   row: {
     flexDirection: 'row',
-    borderBottomWidth: 1,
+    borderBottomWidth: 0.5, // Thinner line
     borderBottomColor: '#000000',
     borderBottomStyle: 'solid',
     alignItems: 'center',
-    height: 24
+    height: 15 // Shorter rows
   },
   description: {
-    width: '60%'
+    width: '60%',
+    fontSize: 7 // Smaller font
   },
   amount: {
     width: '40%',
-    textAlign: 'right'
+    textAlign: 'right',
+    fontSize: 7 // Smaller font
+  },
+  boldText: {
+    fontFamily: 'Times-Bold'
+  },
+  employeeInfo: {
+    fontSize: 8, // Smaller font
+    marginBottom: 1
+  },
+  sectionHeader: {
+    marginTop: 5, 
+    marginBottom: 2, 
+    fontSize: 8,
+    fontFamily: 'Times-Bold'
+  },
+  totalRow: {
+    marginTop: 5, 
+    borderTopWidth: 0.5, // Thinner line
+    borderBottomWidth: 0
   }
 });
 
@@ -67,68 +103,80 @@ const formatAmount = (amount) => {
   return `${formattedWhole}.${decimal}`;
 };
 
-const PayrollPDF = ({ employeeName, payrollData, calculation }) => (
-  <Document>
-    <Page size="A4" style={styles.page}>
-      <View style={styles.headerContainer}>
-        <Image 
-          style={styles.logo}
-          src={logo} // Using the imported logo variable
-        />
-        <Text style={styles.headerText}>Payroll Summary</Text>
-      </View>
-      <View style={styles.section}>
-        <Text>Employee Name: {employeeName}</Text>
-        <Text>Monthly Salary: {formatAmount(payrollData.monthlySalary)}</Text>
-        
-        <View style={styles.row}>
-          <Text style={styles.description}>Daily Rate:</Text>
-          <Text style={styles.amount}>{formatAmount(calculation.dailyRate)}</Text>
+const PayrollPDF = ({ employeeName, payrollData, calculation }) => {
+  // Calculate the basic pay (semi-monthly gross)
+  const basicPay = payrollData.monthlySalary / 2;
+  
+  return (
+    <Document>
+      <Page size={[288, 432]} style={styles.page}>
+        <View style={styles.headerContainer}>
+          <Image 
+            style={styles.logo}
+            src={logo}
+          />
+          <Text style={styles.headerText}>Payroll Summary</Text>
         </View>
-        
-        <Text style={{ marginTop: 20, marginBottom: 10, fontWeight: 'bold' }}>Deductions:</Text>
-        <View style={styles.row}>
-          <Text style={styles.description}>Absences:</Text>
-          <Text style={styles.amount}>{formatAmount(calculation.absencesDeduction)}</Text>
+        <View style={styles.section}>
+          <Text style={styles.employeeInfo}>Employee Name: {employeeName}</Text>
+          <Text style={styles.employeeInfo}>Monthly Salary: {formatAmount(payrollData.monthlySalary)}</Text>
+          
+          <Text style={styles.sectionHeader}>Earnings:</Text>
+          <View style={styles.row}>
+            <Text style={styles.description}>Basic Pay:</Text>
+            <Text style={styles.amount}>{formatAmount(basicPay)}</Text>
+          </View>
+          <View style={styles.row}>
+            <Text style={styles.description}>Non-Taxable Allowance:</Text>
+            <Text style={styles.amount}>{formatAmount(calculation.nonTaxableAllowance)}</Text>
+          </View>
+          <View style={styles.row}>
+            <Text style={styles.description}>Overtime Pay:</Text>
+            <Text style={styles.amount}>{formatAmount(calculation.overtimePay)}</Text>
+          </View>
+          <View style={styles.row}>
+            <Text style={styles.description}>Night Differential Pay:</Text>
+            <Text style={styles.amount}>{formatAmount(calculation.nightDifferentialPay)}</Text>
+          </View>
+          <View style={styles.row}>
+            <Text style={styles.description}>Special Holiday Pay:</Text>
+            <Text style={styles.amount}>{formatAmount(calculation.specialHolidayPay)}</Text>
+          </View>
+          <View style={styles.row}>
+            <Text style={styles.description}>Sick Leave Pay:</Text>
+            <Text style={styles.amount}>{formatAmount(calculation.sickLeavePay)}</Text>
+          </View>
+          
+          <Text style={styles.sectionHeader}>Deductions:</Text>
+          <View style={styles.row}>
+            <Text style={styles.description}>Absences:</Text>
+            <Text style={styles.amount}>{formatAmount(calculation.absencesDeduction)}</Text>
+          </View>
+          <View style={styles.row}>
+            <Text style={styles.description}>Late:</Text>
+            <Text style={styles.amount}>{formatAmount(calculation.lateDeduction)}</Text>
+          </View>
+          <View style={styles.row}>
+            <Text style={styles.description}>SSS:</Text>
+            <Text style={styles.amount}>{formatAmount(calculation.sssContribution)}</Text>
+          </View>
+          <View style={styles.row}>
+            <Text style={styles.description}>PhilHealth:</Text>
+            <Text style={styles.amount}>{formatAmount(calculation.philHealthContribution)}</Text>
+          </View>
+          <View style={styles.row}>
+            <Text style={styles.description}>Pag-IBIG:</Text>
+            <Text style={styles.amount}>{formatAmount(calculation.pagIbigContribution)}</Text>
+          </View>
+          
+          <View style={[styles.row, styles.totalRow]}>
+            <Text style={[styles.description, { fontFamily: 'Times-Bold' }]}>Semi-Monthly Net Pay:</Text>
+            <Text style={[styles.amount, { fontFamily: 'Times-Bold' }]}>{formatAmount(calculation.netPay)}</Text>
+          </View>
         </View>
-        <View style={styles.row}>
-          <Text style={styles.description}>Late:</Text>
-          <Text style={styles.amount}>{formatAmount(calculation.lateDeduction)}</Text>
-        </View>
-        <View style={styles.row}>
-          <Text style={styles.description}>SSS:</Text>
-          <Text style={styles.amount}>{formatAmount(calculation.sssContribution)}</Text>
-        </View>
-        <View style={styles.row}>
-          <Text style={styles.description}>PhilHealth:</Text>
-          <Text style={styles.amount}>{formatAmount(calculation.philHealthContribution)}</Text>
-        </View>
-        <View style={styles.row}>
-          <Text style={styles.description}>Pag-IBIG:</Text>
-          <Text style={styles.amount}>{formatAmount(calculation.pagIbigContribution)}</Text>
-        </View>
-        
-        <Text style={{ marginTop: 20, marginBottom: 10, fontWeight: 'bold' }}>Additions:</Text>
-        <View style={styles.row}>
-          <Text style={styles.description}>Non-Taxable Allowance:</Text>
-          <Text style={styles.amount}>{formatAmount(calculation.nonTaxableAllowance)}</Text>
-        </View>
-        <View style={styles.row}>
-          <Text style={styles.description}>Overtime Pay:</Text>
-          <Text style={styles.amount}>{formatAmount(calculation.overtimePay)}</Text>
-        </View>
-        <View style={styles.row}>
-          <Text style={styles.description}>Sick Leave Pay:</Text>
-          <Text style={styles.amount}>{formatAmount(calculation.sickLeavePay)}</Text>
-        </View>
-        
-        <View style={[styles.row, { marginTop: 20, borderTopWidth: 2 }]}>
-          <Text style={[styles.description, { fontWeight: 'bold' }]}>Semi-Monthly Net Pay:</Text>
-          <Text style={[styles.amount, { fontWeight: 'bold' }]}>{formatAmount(calculation.netPay)}</Text>
-        </View>
-      </View>
-    </Page>
-  </Document>
-);
+      </Page>
+    </Document>
+  );
+};
 
 export default PayrollPDF;

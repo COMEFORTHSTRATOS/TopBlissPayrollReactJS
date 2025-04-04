@@ -20,6 +20,8 @@ function Payroll() {
     absences: 0,
     lateMinutes: 0,
     overtimeHours: 0,
+    nightDifferentialHours: 0,
+    specialHolidayHours: 0,
     sickLeave: 0
   });
   const [calculation, setCalculation] = useState({
@@ -28,6 +30,8 @@ function Payroll() {
     absencesDeduction: 0,
     lateDeduction: 0,
     overtimePay: 0,
+    nightDifferentialPay: 0,
+    specialHolidayPay: 0,
     sssContribution: 0,
     philHealthContribution: 0,
     pagIbigContribution: 0,
@@ -170,15 +174,29 @@ function Payroll() {
   const calculatePayroll = () => {
     const semiMonthlyGross = payrollData.monthlySalary / 2;
     const semiMonthlyNonTaxable = payrollData.nonTaxableAllowance;
-    const dailyRate = Number((payrollData.monthlySalary / 26).toFixed(2));
-    const hourlyRate = Number((dailyRate / 8).toFixed(2));
+    
+    // Calculate rates without rounding
+    const dailyRate = payrollData.monthlySalary / 26;
+    const hourlyRate = dailyRate / 8;
 
-    const absencesDeduction = Number((payrollData.absences * dailyRate).toFixed(2));
-    const lateDeduction = Number(((payrollData.lateMinutes / 60) * hourlyRate).toFixed(2));
-    const overtimeRate = Number(((payrollData.monthlySalary / 26 / 8) * 1.25).toFixed(2));
-    const overtimePay = Number((payrollData.overtimeHours * overtimeRate).toFixed(2));
-    const sickLeavePay = Number((payrollData.sickLeave * dailyRate).toFixed(2));
+    // Calculate deductions without rounding
+    const absencesDeduction = payrollData.absences * dailyRate;
+    const lateDeduction = (payrollData.lateMinutes / 60) * hourlyRate;
+    
+    // Calculate overtime pay without rounding
+    const overtimeRate = (payrollData.monthlySalary / 26 / 8) * 1.25;
+    const overtimePay = payrollData.overtimeHours * overtimeRate;
+    
+    // Calculate sick leave pay without rounding
+    const sickLeavePay = payrollData.sickLeave * dailyRate;
+    
+    // Calculate night differential pay without rounding
+    const nightDifferentialPay = (payrollData.monthlySalary / 8) * 0.1 * payrollData.nightDifferentialHours;
+    
+    // Calculate special holiday pay without rounding
+    const specialHolidayPay = (payrollData.monthlySalary / 26 / 8) * 0.3 * payrollData.specialHolidayHours;
 
+    // Calculate contributions
     const sssContribution = calculateSSSContribution(payrollData.monthlySalary);
     const philHealthContribution = calculatePhilHealthContribution(payrollData.monthlySalary);
     const pagIbigContribution = calculatePagIbigContribution();
@@ -190,11 +208,14 @@ function Payroll() {
       pagIbigContribution
     );
 
+    // Calculate total deductions without rounding
     const totalDeductions = absencesDeduction + lateDeduction + 
-                           sssContribution + philHealthContribution + 
-                           pagIbigContribution + incomeTax;
+                          sssContribution + philHealthContribution + 
+                          pagIbigContribution + incomeTax;
 
-    const netPay = semiMonthlyGross + semiMonthlyNonTaxable + overtimePay + sickLeavePay - totalDeductions;
+    // Calculate net pay without rounding
+    const netPay = semiMonthlyGross + semiMonthlyNonTaxable + overtimePay + 
+                 nightDifferentialPay + specialHolidayPay + sickLeavePay - totalDeductions;
 
     setCalculation({
       dailyRate,
@@ -202,6 +223,8 @@ function Payroll() {
       absencesDeduction,
       lateDeduction,
       overtimePay,
+      nightDifferentialPay,
+      specialHolidayPay,
       sssContribution,
       philHealthContribution,
       pagIbigContribution,
@@ -227,7 +250,7 @@ function Payroll() {
             Payroll Management
           </Typography>
           <Typography variant="body1" paragraph>
-           payroll hahahahaha antok nako hahaha
+            payroll hahahahaha antok nako hahaha
           </Typography>
           
           <Grid container spacing={3}>
@@ -299,7 +322,7 @@ function Payroll() {
                       onChange={handleInputChange}
                     />
                   </Grid>
-                  <Grid item xs={12}>
+                  <Grid item xs={12} sm={6}>
                     <TextField
                       fullWidth
                       label="Overtime (hours)"
@@ -309,7 +332,27 @@ function Payroll() {
                       onChange={handleInputChange}
                     />
                   </Grid>
-                  <Grid item xs={12}>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      label="Night Differential (hours)"
+                      name="nightDifferentialHours"
+                      type="number"
+                      value={payrollData.nightDifferentialHours || ''}
+                      onChange={handleInputChange}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      label="Special Holiday (hours)"
+                      name="specialHolidayHours"
+                      type="number"
+                      value={payrollData.specialHolidayHours || ''}
+                      onChange={handleInputChange}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
                     <TextField
                       fullWidth
                       label="Sick Leave (days)"
@@ -373,8 +416,8 @@ function Payroll() {
                     </TableHead>
                     <TableBody>
                       <TableRow>
-                        <TableCell>Daily Rate</TableCell>
-                        <TableCell align="right">{formatCurrency(calculation.dailyRate)}</TableCell>
+                        <TableCell>Basic Pay</TableCell>
+                        <TableCell align="right">{formatCurrency(payrollData.monthlySalary / 2)}</TableCell>
                       </TableRow>
                       <TableRow>
                         <TableCell>Hourly Rate</TableCell>
@@ -425,6 +468,14 @@ function Payroll() {
                       <TableRow>
                         <TableCell>Overtime Pay</TableCell>
                         <TableCell align="right">{formatCurrency(calculation.overtimePay)}</TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell>Night Differential Pay</TableCell>
+                        <TableCell align="right">{formatCurrency(calculation.nightDifferentialPay)}</TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell>Special Holiday Pay</TableCell>
+                        <TableCell align="right">{formatCurrency(calculation.specialHolidayPay)}</TableCell>
                       </TableRow>
                       <TableRow>
                         <TableCell>Sick Leave Pay</TableCell>
