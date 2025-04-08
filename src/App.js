@@ -6,7 +6,7 @@ import Register from './Authentication/Register';
 import Home from './Home';
 import Payroll from './Features/Payroll';
 import Employees from './Features/Employees';
-import Attendance from './Features/Attendance';
+import Recruitment from './Features/Recruitment';
 import { AuthProvider } from './contexts/AuthContext';
 import PrivateRoute from './components/PrivateRoute';
 
@@ -43,10 +43,10 @@ function App() {
               
           />
       <Route 
-            path="/attendance" 
+            path="/Recruitment" 
             element={
               <PrivateRoute>
-                <Attendance />
+                <Recruitment />
               </PrivateRoute>
             } 
               
