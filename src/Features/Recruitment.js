@@ -11,6 +11,8 @@ import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import VisibilityIcon from '@mui/icons-material/Visibility';
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
+import { db } from '../firebase';
 
 // Default data
 const defaultJobs = [
@@ -37,13 +39,12 @@ const defaultPipeline = [
 function Recruitment() {
   const [show, setShow] = React.useState(false);
   const [tabValue, setTabValue] = useState(0);
+  const [loading, setLoading] = useState(true);
   
-  // Load data from localStorage or use defaults
-  const [jobs, setJobs] = useState(() => {
-    const savedJobs = localStorage.getItem('recruitmentJobs');
-    return savedJobs ? JSON.parse(savedJobs) : defaultJobs;
-  });
+  // Use state for jobs without localStorage initialization
+  const [jobs, setJobs] = useState([]);
   
+  // Load candidates and pipeline from localStorage or use defaults
   const [candidates, setCandidates] = useState(() => {
     const savedCandidates = localStorage.getItem('recruitmentCandidates');
     return savedCandidates ? JSON.parse(savedCandidates) : defaultCandidates;
@@ -80,11 +81,45 @@ function Recruitment() {
     date: new Date().toISOString().split('T')[0] 
   });
 
-  // Save data to localStorage whenever it changes
+  // Fetch jobs from Firestore
+  const fetchJobs = async () => {
+    try {
+      setLoading(true);
+      const jobsCollection = collection(db, 'jobs');
+      const jobsSnapshot = await getDocs(jobsCollection);
+      const jobsList = jobsSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      
+      // If no jobs exist in Firestore yet, initialize with default jobs
+      if (jobsList.length === 0) {
+        await Promise.all(defaultJobs.map(job => 
+          addDoc(collection(db, 'jobs'), { 
+            title: job.title, 
+            department: job.department, 
+            status: job.status, 
+            applicants: job.applicants 
+          })
+        ));
+        fetchJobs(); // Fetch again after initialization
+        return;
+      }
+      
+      setJobs(jobsList);
+    } catch (error) {
+      console.error("Error fetching jobs:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load data on component mount
   useEffect(() => {
-    localStorage.setItem('recruitmentJobs', JSON.stringify(jobs));
-  }, [jobs]);
-  
+    fetchJobs();
+  }, []);
+
+  // Save candidates and pipeline to localStorage whenever they change
   useEffect(() => {
     localStorage.setItem('recruitmentCandidates', JSON.stringify(candidates));
   }, [candidates]);
@@ -138,7 +173,7 @@ function Recruitment() {
     return updatedPipeline;
   };
 
-  // Calculate job applicant counts based on candidates
+  // Update job applicant counts based on candidates
   const recalculateJobApplicants = (jobsList, candidatesList) => {
     const jobCounts = {};
     
@@ -161,49 +196,111 @@ function Recruitment() {
     }));
   };
 
+  // Update Firestore when candidates affect job applicant counts
+  const updateJobApplicantsInFirestore = async (updatedJobs) => {
+    for (const job of updatedJobs) {
+      try {
+        const jobRef = doc(db, 'jobs', job.id);
+        await updateDoc(jobRef, { applicants: job.applicants });
+      } catch (error) {
+        console.error("Error updating job applicant count:", error);
+      }
+    }
+  };
+
   // Ensure data consistency on initial load
   useEffect(() => {
-    // Update pipeline counts based on candidates
-    const updatedPipeline = recalculatePipeline(candidates);
-    setPipeline(updatedPipeline);
-    
-    // Update job applicant counts based on candidates
-    const updatedJobs = recalculateJobApplicants(jobs, candidates);
-    setJobs(updatedJobs);
-  }, []);
+    if (jobs.length > 0) {
+      // Update pipeline counts based on candidates
+      const updatedPipeline = recalculatePipeline(candidates);
+      setPipeline(updatedPipeline);
+      
+      // Update job applicant counts based on candidates
+      const updatedJobs = recalculateJobApplicants(jobs, candidates);
+      
+      // Update jobs in Firestore with correct applicant counts
+      updatedJobs.forEach(async (job) => {
+        try {
+          const jobRef = doc(db, 'jobs', job.id);
+          await updateDoc(jobRef, { applicants: job.applicants });
+        } catch (error) {
+          console.error("Error updating job applicant count:", error);
+        }
+      });
+      
+      setJobs(updatedJobs);
+    }
+  }, [jobs.length]);
 
-  // Job CRUD operations
-  const handleAddJob = () => {
-    const id = jobs.length > 0 ? Math.max(...jobs.map(job => job.id)) + 1 : 1;
-    const jobToAdd = { ...newJob, id, applicants: 0 };
-    const updatedJobs = [...jobs, jobToAdd];
-    setJobs(updatedJobs);
-    setNewJob({ title: '', department: '', status: 'Open', applicants: 0 });
-    setAddJobDialogOpen(false);
+  // Job CRUD operations with Firestore
+  const handleAddJob = async () => {
+    try {
+      const jobToAdd = { 
+        title: newJob.title, 
+        department: newJob.department, 
+        status: newJob.status, 
+        applicants: 0 
+      };
+      
+      const docRef = await addDoc(collection(db, 'jobs'), jobToAdd);
+      
+      // Add the new job to the state with the Firestore ID
+      setJobs([...jobs, { id: docRef.id, ...jobToAdd }]);
+      setNewJob({ title: '', department: '', status: 'Open', applicants: 0 });
+      setAddJobDialogOpen(false);
+    } catch (error) {
+      console.error("Error adding job:", error);
+    }
   };
 
-  const handleEditJob = () => {
-    // Keep the applicants count intact when editing
-    const currentApplicants = jobs.find(job => job.id === currentJob.id).applicants;
-    const jobToUpdate = { ...currentJob, applicants: currentApplicants };
-    const updatedJobs = jobs.map(job => job.id === jobToUpdate.id ? jobToUpdate : job);
-    setJobs(updatedJobs);
-    setEditJobDialogOpen(false);
+  const handleEditJob = async () => {
+    try {
+      // Keep the applicants count intact when editing
+      const currentApplicants = jobs.find(job => job.id === currentJob.id).applicants;
+      const jobToUpdate = { 
+        title: currentJob.title,
+        department: currentJob.department,
+        status: currentJob.status,
+        applicants: currentApplicants
+      };
+      
+      // Update in Firestore
+      const jobRef = doc(db, 'jobs', currentJob.id);
+      await updateDoc(jobRef, jobToUpdate);
+      
+      // Update in state
+      const updatedJobs = jobs.map(job => 
+        job.id === currentJob.id ? { id: currentJob.id, ...jobToUpdate } : job
+      );
+      setJobs(updatedJobs);
+      setEditJobDialogOpen(false);
+    } catch (error) {
+      console.error("Error updating job:", error);
+    }
   };
 
-  const handleDeleteJob = () => {
-    const updatedJobs = jobs.filter(job => job.id !== currentJob.id);
-    
-    // Handle linked candidates when a job is deleted
-    const updatedCandidates = candidates.map(candidate => 
-      candidate.jobId === currentJob.id 
-        ? { ...candidate, jobId: null, position: `${candidate.position} (Job Deleted)` }
-        : candidate
-    );
-    
-    setCandidates(updatedCandidates);
-    setJobs(updatedJobs);
-    setDeleteJobDialogOpen(false);
+  const handleDeleteJob = async () => {
+    try {
+      // Delete from Firestore
+      const jobRef = doc(db, 'jobs', currentJob.id);
+      await deleteDoc(jobRef);
+      
+      // Update state
+      const updatedJobs = jobs.filter(job => job.id !== currentJob.id);
+      
+      // Handle linked candidates when a job is deleted
+      const updatedCandidates = candidates.map(candidate => 
+        candidate.jobId === currentJob.id 
+          ? { ...candidate, jobId: null, position: `${candidate.position} (Job Deleted)` }
+          : candidate
+      );
+      
+      setCandidates(updatedCandidates);
+      setJobs(updatedJobs);
+      setDeleteJobDialogOpen(false);
+    } catch (error) {
+      console.error("Error deleting job:", error);
+    }
   };
 
   // Candidate CRUD operations
@@ -229,6 +326,7 @@ function Recruitment() {
     if (candidateToAdd.jobId) {
       const updatedJobs = recalculateJobApplicants(jobs, updatedCandidates);
       setJobs(updatedJobs);
+      updateJobApplicantsInFirestore(updatedJobs);
     }
     
     setAddCandidateDialogOpen(false);
@@ -252,6 +350,7 @@ function Recruitment() {
     if (oldCandidate.jobId !== currentCandidate.jobId) {
       const updatedJobs = recalculateJobApplicants(jobs, updatedCandidates);
       setJobs(updatedJobs);
+      updateJobApplicantsInFirestore(updatedJobs);
     }
     
     setEditCandidateDialogOpen(false);
@@ -270,6 +369,7 @@ function Recruitment() {
     if (currentCandidate.jobId) {
       const updatedJobs = recalculateJobApplicants(jobs, updatedCandidates);
       setJobs(updatedJobs);
+      updateJobApplicantsInFirestore(updatedJobs);
     }
     
     setDeleteCandidateDialogOpen(false);
