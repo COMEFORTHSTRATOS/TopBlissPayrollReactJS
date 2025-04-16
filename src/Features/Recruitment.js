@@ -11,6 +11,7 @@ import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import VisibilityIcon from '@mui/icons-material/Visibility';
+import FileOpenIcon from '@mui/icons-material/FileOpen';
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '../firebase';
 
@@ -75,7 +76,8 @@ function Recruitment() {
     middleName: '',
     lastName: '',
     name: '',
-    phoneNumber: '', 
+    phoneNumber: '',
+    resumeLink: '', 
     position: '', 
     jobId: null, 
     status: 'New Applications', 
@@ -144,6 +146,7 @@ function Recruitment() {
           // Use combined name for display
           name: fullName || data.candidateName || data.fullName || 'Unknown',
           phoneNumber: data.phoneNumber || data.phone || data.contactNumber || '',
+          resumeLink: data.resumeLink || data.resume || data.cvLink || '',
           position: data.position || data.jobTitle || data.role || 'Not specified',
           jobId: data.jobId || null,
           status: data.status || data.applicationStatus || 'New Applications',
@@ -400,6 +403,7 @@ function Recruitment() {
         lastName,
         name: newCandidate.name,
         phoneNumber: newCandidate.phoneNumber,
+        resumeLink: newCandidate.resumeLink,
         position: newCandidate.position,
         jobId: newCandidate.jobId,
         status: newCandidate.status,
@@ -420,6 +424,7 @@ function Recruitment() {
         lastName: '',
         name: '',
         phoneNumber: '', 
+        resumeLink: '', 
         position: '', 
         jobId: null, 
         status: 'New Applications', 
@@ -456,6 +461,7 @@ function Recruitment() {
         lastName: currentCandidate.lastName || '',
         name: currentCandidate.name,
         phoneNumber: currentCandidate.phoneNumber || '',
+        resumeLink: currentCandidate.resumeLink || '',
         position: currentCandidate.position,
         jobId: currentCandidate.jobId,
         status: currentCandidate.status,
@@ -599,6 +605,7 @@ function Recruitment() {
                     <TableCell>Candidate Name</TableCell>
                     <TableCell>Position</TableCell>
                     <TableCell>Phone Number</TableCell>
+                    <TableCell>Resume</TableCell>
                     <TableCell>Status</TableCell>
                     <TableCell>Application Date</TableCell>
                     <TableCell>Actions</TableCell>
@@ -607,11 +614,11 @@ function Recruitment() {
                 <TableBody>
                   {loading ? (
                     <TableRow>
-                      <TableCell colSpan={6} align="center">Loading candidates...</TableCell>
+                      <TableCell colSpan={7} align="center">Loading candidates...</TableCell>
                     </TableRow>
                   ) : candidates.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} align="center">No candidates found</TableCell>
+                      <TableCell colSpan={7} align="center">No candidates found</TableCell>
                     </TableRow>
                   ) : (
                     candidates.map((candidate) => (
@@ -619,6 +626,22 @@ function Recruitment() {
                         <TableCell>{candidate.name || 'Unknown'}</TableCell>
                         <TableCell>{candidate.position || 'Not specified'}</TableCell>
                         <TableCell>{candidate.phoneNumber || 'N/A'}</TableCell>
+                        <TableCell>
+                          {candidate.resumeLink ? (
+                            <IconButton 
+                              size="small" 
+                              component="a" 
+                              href={candidate.resumeLink} 
+                              target="_blank" 
+                              rel="noopener noreferrer" 
+                              color="primary"
+                            >
+                              <FileOpenIcon fontSize="small" />
+                            </IconButton>
+                          ) : (
+                            'N/A'
+                          )}
+                        </TableCell>
                         <TableCell>
                           <Chip 
                             label={candidate.status || 'New Applications'} 
@@ -850,6 +873,14 @@ function Recruitment() {
                 value={newCandidate.phoneNumber || ''}
                 onChange={(e) => setNewCandidate({...newCandidate, phoneNumber: e.target.value})}
               />
+              <TextField
+                margin="dense"
+                label="Resume Link"
+                fullWidth
+                value={newCandidate.resumeLink || ''}
+                onChange={(e) => setNewCandidate({...newCandidate, resumeLink: e.target.value})}
+                placeholder="URL to resume/CV document"
+              />
               <FormControl fullWidth margin="dense">
                 <InputLabel>Job Position</InputLabel>
                 <Select
@@ -961,6 +992,14 @@ function Recruitment() {
                     value={currentCandidate.phoneNumber || ''}
                     onChange={(e) => setCurrentCandidate({...currentCandidate, phoneNumber: e.target.value})}
                   />
+                  <TextField
+                    margin="dense"
+                    label="Resume Link"
+                    fullWidth
+                    value={currentCandidate.resumeLink || ''}
+                    onChange={(e) => setCurrentCandidate({...currentCandidate, resumeLink: e.target.value})}
+                    placeholder="URL to resume/CV document"
+                  />
                   <FormControl fullWidth margin="dense">
                     <InputLabel>Job Position</InputLabel>
                     <Select
@@ -1048,6 +1087,23 @@ function Recruitment() {
                       jobs.find(job => job.id === currentCandidate.jobId)?.title || 'Unknown Job' : 
                       'No specific job'}
                   </Typography>
+                  
+                  <Typography variant="subtitle1">Resume</Typography>
+                  {currentCandidate.resumeLink ? (
+                    <Button 
+                      variant="outlined" 
+                      size="small" 
+                      component="a" 
+                      href={currentCandidate.resumeLink} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      sx={{ mt: 1, mb: 2 }}
+                    >
+                      View Resume
+                    </Button>
+                  ) : (
+                    <Typography paragraph>No resume available</Typography>
+                  )}
                   
                   <Typography variant="subtitle1">Status</Typography>
                   <Chip label={currentCandidate.status} color={getStatusColor(currentCandidate.status)} />
