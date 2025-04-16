@@ -252,8 +252,22 @@ function Recruitment() {
     
     // Count candidates for each job
     candidatesList.forEach(candidate => {
+      // First check if candidate has a direct jobId reference
       if (jobCounts[candidate.jobId] !== undefined) {
         jobCounts[candidate.jobId]++;
+      } 
+      // If no direct jobId match or jobId is null, check if position matches a job title
+      else {
+        const candidatePosition = (candidate.position || '').toLowerCase().trim();
+        if (candidatePosition) {
+          // Find jobs where the title matches the candidate's position
+          jobsList.forEach(job => {
+            const jobTitle = (job.title || '').toLowerCase().trim();
+            if (jobTitle && candidatePosition === jobTitle) {
+              jobCounts[job.id]++;
+            }
+          });
+        }
       }
     });
     
