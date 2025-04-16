@@ -104,8 +104,8 @@ const formatAmount = (amount) => {
 };
 
 const PayrollPDF = ({ employeeName, payrollData, calculation }) => {
-  // Calculate the basic pay (semi-monthly gross)
-  const basicPay = payrollData.monthlySalary / 2;
+  // Calculate the basic pay (semi-monthly gross) with absences and lates deducted
+  const basicPay = (payrollData.monthlySalary / 2) - calculation.absencesDeduction - calculation.lateDeduction;
   
   return (
     <Document>
@@ -123,7 +123,7 @@ const PayrollPDF = ({ employeeName, payrollData, calculation }) => {
           
           <Text style={styles.sectionHeader}>Earnings:</Text>
           <View style={styles.row}>
-            <Text style={styles.description}>Basic Pay:</Text>
+            <Text style={styles.description}>Basic Pay (After Absences & Lates):</Text>
             <Text style={styles.amount}>{formatAmount(basicPay)}</Text>
           </View>
           <View style={styles.row}>
