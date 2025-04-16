@@ -44,11 +44,8 @@ function Recruitment() {
   // Use state for jobs without localStorage initialization
   const [jobs, setJobs] = useState([]);
   
-  // Load candidates and pipeline from localStorage or use defaults
-  const [candidates, setCandidates] = useState(() => {
-    const savedCandidates = localStorage.getItem('recruitmentCandidates');
-    return savedCandidates ? JSON.parse(savedCandidates) : defaultCandidates;
-  });
+  // Initialize candidates from Firestore instead of localStorage
+  const [candidates, setCandidates] = useState([]);
   
   const [pipeline, setPipeline] = useState(() => {
     const savedPipeline = localStorage.getItem('recruitmentPipeline');
@@ -74,7 +71,11 @@ function Recruitment() {
   // New item form data
   const [newJob, setNewJob] = useState({ title: '', department: '', status: 'Open', applicants: 0 });
   const [newCandidate, setNewCandidate] = useState({ 
-    name: '', 
+    firstName: '',
+    middleName: '',
+    lastName: '',
+    name: '',
+    phoneNumber: '', 
     position: '', 
     jobId: null, 
     status: 'New Applications', 
@@ -114,16 +115,78 @@ function Recruitment() {
     }
   };
 
+  // Fetch candidates from Firestore jobApplications collection
+  const fetchCandidates = async () => {
+    try {
+      setLoading(true);
+      const candidatesCollection = collection(db, 'jobApplications');
+      const candidatesSnapshot = await getDocs(candidatesCollection);
+      const candidatesList = candidatesSnapshot.docs.map(doc => {
+        const data = doc.data();
+        
+        // Combine name fields if they exist
+        let fullName = data.name; // Use existing name field if present
+        if (!fullName && (data.firstName || data.lastName)) {
+          fullName = [
+            data.firstName || '',
+            data.middleName || '',
+            data.lastName || ''
+          ].filter(namePart => namePart.trim() !== '').join(' ');
+        }
+        
+        // Normalize data to ensure all required fields exist
+        return {
+          id: doc.id,
+          // Store original name parts for editing
+          firstName: data.firstName || '',
+          middleName: data.middleName || '',
+          lastName: data.lastName || '',
+          // Use combined name for display
+          name: fullName || data.candidateName || data.fullName || 'Unknown',
+          phoneNumber: data.phoneNumber || data.phone || data.contactNumber || '',
+          position: data.position || data.jobTitle || data.role || 'Not specified',
+          jobId: data.jobId || null,
+          status: data.status || data.applicationStatus || 'New Applications',
+          date: data.date || data.applicationDate || data.submissionDate || new Date().toISOString().split('T')[0]
+        };
+      });
+      
+      // If no candidates exist in Firestore yet, initialize with default candidates
+      if (candidatesList.length === 0) {
+        await Promise.all(defaultCandidates.map(candidate => 
+          addDoc(collection(db, 'jobApplications'), { 
+            name: candidate.name, 
+            position: candidate.position, 
+            jobId: candidate.jobId, 
+            status: candidate.status, 
+            date: candidate.date 
+          })
+        ));
+        fetchCandidates(); // Fetch again after initialization
+        return;
+      }
+      
+      console.log("Fetched candidates:", candidatesList); // Debug log
+      setCandidates(candidatesList);
+      
+      // Update pipeline counts based on fetched candidates
+      const updatedPipeline = recalculatePipeline(candidatesList);
+      setPipeline(updatedPipeline);
+      
+    } catch (error) {
+      console.error("Error fetching candidates:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Load data on component mount
   useEffect(() => {
     fetchJobs();
+    fetchCandidates();
   }, []);
 
-  // Save candidates and pipeline to localStorage whenever they change
-  useEffect(() => {
-    localStorage.setItem('recruitmentCandidates', JSON.stringify(candidates));
-  }, [candidates]);
-  
+  // Save only pipeline to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem('recruitmentPipeline', JSON.stringify(pipeline));
   }, [pipeline]);
@@ -137,6 +200,8 @@ function Recruitment() {
   };
 
   const getStatusColor = (status) => {
+    if (!status) return 'default'; // Add null/undefined check
+    
     switch(status.toLowerCase()) {
       case 'open': return 'success';
       case 'closed': return 'error';
@@ -159,8 +224,11 @@ function Recruitment() {
     
     // Count candidates in each stage
     candidatesList.forEach(candidate => {
-      if (counts[candidate.status] !== undefined) {
+      if (candidate.status && counts[candidate.status] !== undefined) {
         counts[candidate.status]++;
+      } else if (candidate.status) {
+        // If status exists but doesn't match any pipeline stage, count as New Applications
+        counts['New Applications'] = (counts['New Applications'] || 0) + 1;
       }
     });
     
@@ -303,76 +371,133 @@ function Recruitment() {
     }
   };
 
-  // Candidate CRUD operations
-  const handleAddCandidate = () => {
-    const id = candidates.length > 0 ? Math.max(...candidates.map(candidate => candidate.id)) + 1 : 1;
-    const candidateToAdd = { ...newCandidate, id };
-    const updatedCandidates = [...candidates, candidateToAdd];
-    
-    setCandidates(updatedCandidates);
-    setNewCandidate({ 
-      name: '', 
-      position: '', 
-      jobId: null, 
-      status: 'New Applications', 
-      date: new Date().toISOString().split('T')[0] 
-    });
-    
-    // Update pipeline counts
-    const updatedPipeline = recalculatePipeline(updatedCandidates);
-    setPipeline(updatedPipeline);
-    
-    // Update job applicant counts if the candidate is linked to a job
-    if (candidateToAdd.jobId) {
-      const updatedJobs = recalculateJobApplicants(jobs, updatedCandidates);
-      setJobs(updatedJobs);
-      updateJobApplicantsInFirestore(updatedJobs);
+  // Candidate CRUD operations - Updated for Firestore
+  const handleAddCandidate = async () => {
+    try {
+      // Split the name if it's in a combined format
+      const nameParts = newCandidate.name.split(' ');
+      const firstName = nameParts[0] || '';
+      const lastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : '';
+      const middleName = nameParts.length > 2 ? nameParts.slice(1, -1).join(' ') : '';
+      
+      const candidateToAdd = { 
+        firstName,
+        middleName,
+        lastName,
+        name: newCandidate.name,
+        phoneNumber: newCandidate.phoneNumber,
+        position: newCandidate.position,
+        jobId: newCandidate.jobId,
+        status: newCandidate.status,
+        date: newCandidate.date
+      };
+      
+      // Add to Firestore
+      const docRef = await addDoc(collection(db, 'jobApplications'), candidateToAdd);
+      
+      // Add to state with the Firestore ID
+      const newCandidateWithId = { id: docRef.id, ...candidateToAdd };
+      const updatedCandidates = [...candidates, newCandidateWithId];
+      
+      setCandidates(updatedCandidates);
+      setNewCandidate({ 
+        firstName: '',
+        middleName: '',
+        lastName: '',
+        name: '',
+        phoneNumber: '', 
+        position: '', 
+        jobId: null, 
+        status: 'New Applications', 
+        date: new Date().toISOString().split('T')[0] 
+      });
+      
+      // Update pipeline counts
+      const updatedPipeline = recalculatePipeline(updatedCandidates);
+      setPipeline(updatedPipeline);
+      
+      // Update job applicant counts if the candidate is linked to a job
+      if (candidateToAdd.jobId) {
+        const updatedJobs = recalculateJobApplicants(jobs, updatedCandidates);
+        setJobs(updatedJobs);
+        updateJobApplicantsInFirestore(updatedJobs);
+      }
+      
+      setAddCandidateDialogOpen(false);
+    } catch (error) {
+      console.error("Error adding candidate:", error);
     }
-    
-    setAddCandidateDialogOpen(false);
   };
 
-  const handleEditCandidate = () => {
-    // Store the old values to update counts
-    const oldCandidate = candidates.find(c => c.id === currentCandidate.id);
-    
-    const updatedCandidates = candidates.map(candidate => 
-      candidate.id === currentCandidate.id ? currentCandidate : candidate
-    );
-    
-    setCandidates(updatedCandidates);
-    
-    // Update pipeline counts
-    const updatedPipeline = recalculatePipeline(updatedCandidates);
-    setPipeline(updatedPipeline);
-    
-    // Update job applicant counts if job assignment changed
-    if (oldCandidate.jobId !== currentCandidate.jobId) {
-      const updatedJobs = recalculateJobApplicants(jobs, updatedCandidates);
-      setJobs(updatedJobs);
-      updateJobApplicantsInFirestore(updatedJobs);
+  const handleEditCandidate = async () => {
+    try {
+      // Store the old values to update counts
+      const oldCandidate = candidates.find(c => c.id === currentCandidate.id);
+      
+      // Update in Firestore
+      const candidateRef = doc(db, 'jobApplications', currentCandidate.id);
+      await updateDoc(candidateRef, {
+        firstName: currentCandidate.firstName || '',
+        middleName: currentCandidate.middleName || '',
+        lastName: currentCandidate.lastName || '',
+        name: currentCandidate.name,
+        phoneNumber: currentCandidate.phoneNumber || '',
+        position: currentCandidate.position,
+        jobId: currentCandidate.jobId,
+        status: currentCandidate.status,
+        date: currentCandidate.date
+      });
+      
+      // Update in state
+      const updatedCandidates = candidates.map(candidate => 
+        candidate.id === currentCandidate.id ? currentCandidate : candidate
+      );
+      
+      setCandidates(updatedCandidates);
+      
+      // Update pipeline counts
+      const updatedPipeline = recalculatePipeline(updatedCandidates);
+      setPipeline(updatedPipeline);
+      
+      // Update job applicant counts if job assignment changed
+      if (oldCandidate.jobId !== currentCandidate.jobId) {
+        const updatedJobs = recalculateJobApplicants(jobs, updatedCandidates);
+        setJobs(updatedJobs);
+        updateJobApplicantsInFirestore(updatedJobs);
+      }
+      
+      setEditCandidateDialogOpen(false);
+    } catch (error) {
+      console.error("Error updating candidate:", error);
     }
-    
-    setEditCandidateDialogOpen(false);
   };
 
-  const handleDeleteCandidate = () => {
-    const updatedCandidates = candidates.filter(candidate => candidate.id !== currentCandidate.id);
-    
-    setCandidates(updatedCandidates);
-    
-    // Update pipeline counts
-    const updatedPipeline = recalculatePipeline(updatedCandidates);
-    setPipeline(updatedPipeline);
-    
-    // Update job applicant counts if the candidate was linked to a job
-    if (currentCandidate.jobId) {
-      const updatedJobs = recalculateJobApplicants(jobs, updatedCandidates);
-      setJobs(updatedJobs);
-      updateJobApplicantsInFirestore(updatedJobs);
+  const handleDeleteCandidate = async () => {
+    try {
+      // Delete from Firestore
+      const candidateRef = doc(db, 'jobApplications', currentCandidate.id);
+      await deleteDoc(candidateRef);
+      
+      // Remove from state
+      const updatedCandidates = candidates.filter(candidate => candidate.id !== currentCandidate.id);
+      
+      setCandidates(updatedCandidates);
+      
+      // Update pipeline counts
+      const updatedPipeline = recalculatePipeline(updatedCandidates);
+      setPipeline(updatedPipeline);
+      
+      // Update job applicant counts if the candidate was linked to a job
+      if (currentCandidate.jobId) {
+        const updatedJobs = recalculateJobApplicants(jobs, updatedCandidates);
+        setJobs(updatedJobs);
+        updateJobApplicantsInFirestore(updatedJobs);
+      }
+      
+      setDeleteCandidateDialogOpen(false);
+    } catch (error) {
+      console.error("Error deleting candidate:", error);
     }
-    
-    setDeleteCandidateDialogOpen(false);
   };
 
   // Function to get candidates for a specific pipeline stage
@@ -459,42 +584,58 @@ function Recruitment() {
                   <TableRow>
                     <TableCell>Candidate Name</TableCell>
                     <TableCell>Position</TableCell>
+                    <TableCell>Phone Number</TableCell>
                     <TableCell>Status</TableCell>
                     <TableCell>Application Date</TableCell>
                     <TableCell>Actions</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {candidates.map((candidate) => (
-                    <TableRow key={candidate.id}>
-                      <TableCell>{candidate.name}</TableCell>
-                      <TableCell>{candidate.position}</TableCell>
-                      <TableCell>
-                        <Chip label={candidate.status} color={getStatusColor(candidate.status)} size="small" />
-                      </TableCell>
-                      <TableCell>{candidate.date}</TableCell>
-                      <TableCell>
-                        <IconButton size="small" onClick={() => {
-                          setCurrentCandidate(candidate);
-                          setViewCandidateDialogOpen(true);
-                        }}>
-                          <VisibilityIcon fontSize="small" />
-                        </IconButton>
-                        <IconButton size="small" onClick={() => {
-                          setCurrentCandidate({...candidate});
-                          setEditCandidateDialogOpen(true);
-                        }}>
-                          <EditIcon fontSize="small" />
-                        </IconButton>
-                        <IconButton size="small" onClick={() => {
-                          setCurrentCandidate(candidate);
-                          setDeleteCandidateDialogOpen(true);
-                        }}>
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
-                      </TableCell>
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={6} align="center">Loading candidates...</TableCell>
                     </TableRow>
-                  ))}
+                  ) : candidates.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} align="center">No candidates found</TableCell>
+                    </TableRow>
+                  ) : (
+                    candidates.map((candidate) => (
+                      <TableRow key={candidate.id}>
+                        <TableCell>{candidate.name || 'Unknown'}</TableCell>
+                        <TableCell>{candidate.position || 'Not specified'}</TableCell>
+                        <TableCell>{candidate.phoneNumber || 'N/A'}</TableCell>
+                        <TableCell>
+                          <Chip 
+                            label={candidate.status || 'New Applications'} 
+                            color={getStatusColor(candidate.status)} 
+                            size="small" 
+                          />
+                        </TableCell>
+                        <TableCell>{candidate.date || 'No date'}</TableCell>
+                        <TableCell>
+                          <IconButton size="small" onClick={() => {
+                            setCurrentCandidate(candidate);
+                            setViewCandidateDialogOpen(true);
+                          }}>
+                            <VisibilityIcon fontSize="small" />
+                          </IconButton>
+                          <IconButton size="small" onClick={() => {
+                            setCurrentCandidate({...candidate});
+                            setEditCandidateDialogOpen(true);
+                          }}>
+                            <EditIcon fontSize="small" />
+                          </IconButton>
+                          <IconButton size="small" onClick={() => {
+                            setCurrentCandidate(candidate);
+                            setDeleteCandidateDialogOpen(true);
+                          }}>
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
                 </TableBody>
               </Table>
             </TableContainer>
@@ -648,10 +789,52 @@ function Recruitment() {
               <TextField
                 autoFocus
                 margin="dense"
-                label="Candidate Name"
+                label="First Name"
                 fullWidth
-                value={newCandidate.name}
-                onChange={(e) => setNewCandidate({...newCandidate, name: e.target.value})}
+                value={newCandidate.firstName || ''}
+                onChange={(e) => {
+                  const firstName = e.target.value;
+                  setNewCandidate({
+                    ...newCandidate, 
+                    firstName,
+                    name: `${firstName} ${newCandidate.middleName || ''} ${newCandidate.lastName || ''}`.trim()
+                  });
+                }}
+              />
+              <TextField
+                margin="dense"
+                label="Middle Name"
+                fullWidth
+                value={newCandidate.middleName || ''}
+                onChange={(e) => {
+                  const middleName = e.target.value;
+                  setNewCandidate({
+                    ...newCandidate, 
+                    middleName,
+                    name: `${newCandidate.firstName || ''} ${middleName} ${newCandidate.lastName || ''}`.trim()
+                  });
+                }}
+              />
+              <TextField
+                margin="dense"
+                label="Last Name"
+                fullWidth
+                value={newCandidate.lastName || ''}
+                onChange={(e) => {
+                  const lastName = e.target.value;
+                  setNewCandidate({
+                    ...newCandidate, 
+                    lastName,
+                    name: `${newCandidate.firstName || ''} ${newCandidate.middleName || ''} ${lastName}`.trim()
+                  });
+                }}
+              />
+              <TextField
+                margin="dense"
+                label="Phone Number"
+                fullWidth
+                value={newCandidate.phoneNumber || ''}
+                onChange={(e) => setNewCandidate({...newCandidate, phoneNumber: e.target.value})}
               />
               <FormControl fullWidth margin="dense">
                 <InputLabel>Job Position</InputLabel>
@@ -726,10 +909,43 @@ function Recruitment() {
                   <TextField
                     autoFocus
                     margin="dense"
-                    label="Candidate Name"
+                    label="First Name"
                     fullWidth
-                    value={currentCandidate.name}
-                    onChange={(e) => setCurrentCandidate({...currentCandidate, name: e.target.value})}
+                    value={currentCandidate.firstName || ''}
+                    onChange={(e) => setCurrentCandidate({
+                      ...currentCandidate, 
+                      firstName: e.target.value,
+                      name: `${e.target.value} ${currentCandidate.middleName || ''} ${currentCandidate.lastName || ''}`.trim()
+                    })}
+                  />
+                  <TextField
+                    margin="dense"
+                    label="Middle Name"
+                    fullWidth
+                    value={currentCandidate.middleName || ''}
+                    onChange={(e) => setCurrentCandidate({
+                      ...currentCandidate, 
+                      middleName: e.target.value,
+                      name: `${currentCandidate.firstName || ''} ${e.target.value} ${currentCandidate.lastName || ''}`.trim()
+                    })}
+                  />
+                  <TextField
+                    margin="dense"
+                    label="Last Name"
+                    fullWidth
+                    value={currentCandidate.lastName || ''}
+                    onChange={(e) => setCurrentCandidate({
+                      ...currentCandidate, 
+                      lastName: e.target.value,
+                      name: `${currentCandidate.firstName || ''} ${currentCandidate.middleName || ''} ${e.target.value}`.trim()
+                    })}
+                  />
+                  <TextField
+                    margin="dense"
+                    label="Phone Number"
+                    fullWidth
+                    value={currentCandidate.phoneNumber || ''}
+                    onChange={(e) => setCurrentCandidate({...currentCandidate, phoneNumber: e.target.value})}
                   />
                   <FormControl fullWidth margin="dense">
                     <InputLabel>Job Position</InputLabel>
@@ -806,10 +1022,13 @@ function Recruitment() {
                   <Typography variant="subtitle1">Name</Typography>
                   <Typography paragraph>{currentCandidate.name}</Typography>
                   
+                  <Typography variant="subtitle1">Phone Number</Typography>
+                  <Typography paragraph>{currentCandidate.phoneNumber || 'Not provided'}</Typography>
+                  
                   <Typography variant="subtitle1">Position</Typography>
                   <Typography paragraph>{currentCandidate.position}</Typography>
                   
-                  <Typography variant="subtitle1">Applied For</Typography>
+
                   <Typography paragraph>
                     {currentCandidate.jobId ? 
                       jobs.find(job => job.id === currentCandidate.jobId)?.title || 'Unknown Job' : 
