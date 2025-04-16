@@ -437,7 +437,7 @@ function Payroll() {
                     <TableBody>
                       <TableRow>
                         <TableCell>Basic Pay</TableCell>
-                        <TableCell align="right">{formatCurrency(payrollData.monthlySalary / 2)}</TableCell>
+                        <TableCell align="right">{formatCurrency((payrollData.monthlySalary / 2) - calculation.absencesDeduction - calculation.lateDeduction)}</TableCell>
                       </TableRow>
                       <TableRow>
                         <TableCell>Hourly Rate</TableCell>
