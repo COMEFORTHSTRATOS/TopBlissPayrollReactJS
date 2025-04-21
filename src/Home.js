@@ -223,21 +223,21 @@ function Home() {
       title: 'Total Employees', 
       value: employees.length || '0', 
       icon: <People fontSize="large" sx={{ color: '#4CAF50' }} />, 
-      change: '+4%',
+    
       color: '#E8F5E9'
     },
     { 
       title: 'Open Positions', 
       value: jobStats.open || '0', 
       icon: <Work fontSize="large" sx={{ color: '#FF9800' }} />, 
-      change: '+20%',
+     
       color: '#FFF3E0'
     },
     { 
       title: 'New Applications', 
       value: recentApplications.length || '0', 
       icon: <Assignment fontSize="large" sx={{ color: '#9C27B0' }} />, 
-      change: '+15%',
+      
       color: '#F3E5F5'
     }
   ];
