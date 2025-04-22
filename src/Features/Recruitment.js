@@ -15,28 +15,6 @@ import FileOpenIcon from '@mui/icons-material/FileOpen';
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '../firebase';
 
-// Default data
-const defaultJobs = [
-  { id: 1, title: 'Software Engineer', department: 'Engineering', status: 'Open', applicants: 12 },
-  { id: 2, title: 'HR Manager', department: 'Human Resources', status: 'Open', applicants: 8 },
-  { id: 3, title: 'Sales Representative', department: 'Sales', status: 'Closed', applicants: 15 }
-];
-
-const defaultCandidates = [
-  { id: 1, name: 'John Doe', position: 'Software Engineer', jobId: 1, status: 'Screening', date: '2023-10-15' },
-  { id: 2, name: 'Jane Smith', position: 'HR Manager', jobId: 2, status: 'Interview', date: '2023-10-10' },
-  { id: 3, name: 'Mike Johnson', position: 'Sales Representative', jobId: 3, status: 'Hired', date: '2023-09-28' }
-];
-
-const defaultPipeline = [
-  { stage: 'New Applications', count: 18 },
-  { stage: 'Screening', count: 12 },
-  { stage: 'Interview', count: 8 },
-  { stage: 'Assessment', count: 5 },
-  { stage: 'Offer', count: 2 },
-  { stage: 'Hired', count: 3 }
-];
-
 function Recruitment() {
   const [show, setShow] = React.useState(false);
   const [tabValue, setTabValue] = useState(0);
@@ -50,7 +28,7 @@ function Recruitment() {
   
   const [pipeline, setPipeline] = useState(() => {
     const savedPipeline = localStorage.getItem('recruitmentPipeline');
-    return savedPipeline ? JSON.parse(savedPipeline) : defaultPipeline;
+    return savedPipeline ? JSON.parse(savedPipeline) : [];
   });
 
   // Modal states
@@ -94,20 +72,6 @@ function Recruitment() {
         id: doc.id,
         ...doc.data()
       }));
-      
-      // If no jobs exist in Firestore yet, initialize with default jobs
-      if (jobsList.length === 0) {
-        await Promise.all(defaultJobs.map(job => 
-          addDoc(collection(db, 'jobs'), { 
-            title: job.title, 
-            department: job.department, 
-            status: job.status, 
-            applicants: job.applicants 
-          })
-        ));
-        fetchJobs(); // Fetch again after initialization
-        return;
-      }
       
       setJobs(jobsList);
     } catch (error) {
@@ -153,21 +117,6 @@ function Recruitment() {
           date: data.date || data.applicationDate || data.submissionDate || new Date().toISOString().split('T')[0]
         };
       });
-      
-      // If no candidates exist in Firestore yet, initialize with default candidates
-      if (candidatesList.length === 0) {
-        await Promise.all(defaultCandidates.map(candidate => 
-          addDoc(collection(db, 'jobApplications'), { 
-            name: candidate.name, 
-            position: candidate.position, 
-            jobId: candidate.jobId, 
-            status: candidate.status, 
-            date: candidate.date 
-          })
-        ));
-        fetchCandidates(); // Fetch again after initialization
-        return;
-      }
       
       console.log("Fetched candidates:", candidatesList); // Debug log
       setCandidates(candidatesList);
