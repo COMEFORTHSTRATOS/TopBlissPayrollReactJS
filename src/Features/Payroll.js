@@ -7,9 +7,10 @@ import {
 } from '@mui/material';
 import ResponsiveAppBar from '../components/ResponsiveAppBar';
 import { db } from '../firebase';
-import { collection, getDocs, query, orderBy } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy, addDoc, Timestamp, where, doc, updateDoc } from 'firebase/firestore';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import PayrollPDF from '../components/PayrollPDF';
+import ThirteenthMonthPayPDF from '../components/ThirteenthMonthPayPDF';
 import { formatCurrency, formatNumber } from '../utils/numberFormat';
 
 function Payroll() {
@@ -45,12 +46,13 @@ function Payroll() {
   });
   const [employees, setEmployees] = useState([]);
   const [selectedEmployee, setSelectedEmployee] = useState('');
-
+  const [payPeriod, setPayPeriod] = useState('1st Half');
+  const [thirteenthMonthPay, setThirteenthMonthPay] = useState(0);
+  const [calculating13thMonth, setCalculating13thMonth] = useState(false);
   useEffect(() => {
     setShow(true);
     fetchEmployees();
   }, []);
-
   const fetchEmployees = async () => {
     try {
       const q = query(collection(db, "employees"), orderBy("lastName"));
@@ -64,7 +66,6 @@ function Payroll() {
       console.error("Error fetching employees: ", error);
     }
   };
-
   const handleEmployeeChange = (event) => {
     const employee = employees.find(emp => emp.id === event.target.value);
     setSelectedEmployee(event.target.value);
@@ -75,7 +76,6 @@ function Payroll() {
       });
     }
   };
-
   const handleInputChange = (event) => {
     const { name, value } = event.target;
     setPayrollData({
@@ -83,10 +83,8 @@ function Payroll() {
       [name]: parseFloat(value) || 0
     });
   };
-
   const calculateSSSContribution = (monthlySalary) => {
     if (monthlySalary < 3250) return 135;
-
     const ranges = [
       { min: 1, max: 5250.00, contribution: 250.00 },
       { min: 5250.01, max: 5749.00, contribution: 275.00 },
@@ -149,80 +147,62 @@ function Payroll() {
       { min: 33750.00, max: 34249.00, contribution: 1700.00 },
       { min: 34250.00, max: 99999.00, contribution: 1725.00 },
     ];
-
     for (const range of ranges) {
       if (monthlySalary >= range.min && monthlySalary <= range.max) {
         return range.contribution;
       }
     }
-
     return 1125;
   };
-
   const calculatePhilHealthContribution = (monthlySalary) => {
     const rate = 0.05;
     const contribution = (monthlySalary * rate) / 2;
     return contribution;
   };
-
   const calculatePagIbigContribution = () => {
     return 200;
   };
-
   const calculateIncomeTax = (monthlySalary, sssContribution, philHealthContribution, pagIbigContribution) => {
     return 0;
   };
-
   const calculatePayroll = () => {
     const semiMonthlyGross = payrollData.monthlySalary / 2;
     const semiMonthlyNonTaxable = payrollData.nonTaxableAllowance;
-    
     // Calculate rates without rounding
     const dailyRate = payrollData.monthlySalary / 26;
     const hourlyRate = dailyRate / 8;
-
     // Calculate deductions without rounding
     const absencesDeduction = payrollData.absences * dailyRate;
     const lateDeduction = (payrollData.lateMinutes / 60) * hourlyRate;
-    
     // Calculate overtime pay without rounding
     const overtimeRate = (payrollData.monthlySalary / 26 / 8) * 1.25;
     const overtimePay = payrollData.overtimeHours * overtimeRate;
-    
     // Calculate sick leave pay without rounding
     const sickLeavePay = payrollData.sickLeave * dailyRate;
-    
     // Calculate night differential pay without rounding
     const nightDifferentialPay = (payrollData.monthlySalary / 8) * 0.1 * payrollData.nightDifferentialHours;
-    
     // Calculate special holiday pay without rounding
     const specialHolidayPay = (payrollData.monthlySalary / 26 / 8) * 0.3 * payrollData.specialHolidayHours;
-
     // Get adjustments
     const adjustments = payrollData.adjustments;
-
     // Calculate contributions
     const sssContribution = calculateSSSContribution(payrollData.monthlySalary);
     const philHealthContribution = calculatePhilHealthContribution(payrollData.monthlySalary);
     const pagIbigContribution = calculatePagIbigContribution();
-
     const incomeTax = calculateIncomeTax(
       payrollData.monthlySalary, 
       sssContribution, 
       philHealthContribution, 
       pagIbigContribution
     );
-
     // Calculate total deductions without rounding
     const totalDeductions = absencesDeduction + lateDeduction + 
                           sssContribution + philHealthContribution + 
                           pagIbigContribution + incomeTax;
-
     // Calculate net pay without rounding
     const netPay = semiMonthlyGross + semiMonthlyNonTaxable + overtimePay + 
                  nightDifferentialPay + specialHolidayPay + sickLeavePay +
                  adjustments - totalDeductions;
-
     setCalculation({
       dailyRate,
       hourlyRate,
@@ -239,15 +219,193 @@ function Payroll() {
       nonTaxableAllowance: semiMonthlyNonTaxable,
       sickLeavePay,
       adjustments,
-      netPay
+      netPay,
     });
   };
+  const calculate13thMonthPay = async () => {
+    if (!selectedEmployee) return;
+    
+    setCalculating13thMonth(true);
+    try {
+      const employee = employees.find(emp => emp.id === selectedEmployee);
+      if (!employee) return;
+      
+      // Get current date to determine the period
+      const now = new Date();
+      const currentYear = now.getFullYear();
+      
+      // We'll collect records for Dec of last year through Nov of current year
+      const records = [];
+      let totalBasicPay = 0;
+      const payrollRecordsRef = collection(db, "payrollRecords");
+      
+      // First get December of previous year
+      try {
+        console.log("Fetching December of previous year...");
+        const decemberQuery = query(
+          payrollRecordsRef,
+          where("employeeId", "==", selectedEmployee),
+          where("year", "==", currentYear - 1),
+          where("month", "==", 12)
+        );
+        
+        const decRecords = await getDocs(decemberQuery);
+        decRecords.forEach((doc) => {
+          const record = doc.data();
+          totalBasicPay += record.basicPay;
+          records.push(record);
+        });
+        console.log(`Found ${decRecords.size} records for December ${currentYear - 1}`);
+      } catch (error) {
+        console.error("Error fetching December records: ", error);
+      }
+      
+      // Now get January to November of current year, month by month
+      for (let month = 1; month <= 11; month++) {
+        try {
+          console.log(`Fetching month ${month} of current year...`);
+          const monthQuery = query(
+            payrollRecordsRef,
+            where("employeeId", "==", selectedEmployee),
+            where("year", "==", currentYear),
+            where("month", "==", month)
+          );
+          
+          const monthRecords = await getDocs(monthQuery);
+          monthRecords.forEach((doc) => {
+            const record = doc.data();
+            totalBasicPay += record.basicPay;
+            records.push(record);
+          });
+          console.log(`Found ${monthRecords.size} records for month ${month}`);
+        } catch (error) {
+          console.error(`Error fetching records for month ${month}: `, error);
+        }
+      }
+      
+      console.log(`Total records found: ${records.length}, Total basic pay: ${totalBasicPay}`);
+      
+      if (records.length === 0) {
+        alert("No payroll records found for this employee in the last year (Dec to Nov).");
+        setCalculating13thMonth(false);
+        return;
+      }
+      
+      // Calculate 13th month pay (total basic pay / 12)
+      const thirteenthMonth = totalBasicPay / 12;
+      setThirteenthMonthPay(thirteenthMonth);
+      
+      // Automatically save the 13th month pay record
+      saveThirteenthMonthRecord(thirteenthMonth);
+      
+    } catch (error) {
+      console.error("Error calculating 13th month pay: ", error);
+      alert("Error calculating 13th month pay: " + error.message);
+    } finally {
+      setCalculating13thMonth(false);
+    }
+  };
+  
+  const saveThirteenthMonthRecord = async (amount) => {
+    if (!selectedEmployee) return;
+    
+    try {
+      const employee = employees.find(emp => emp.id === selectedEmployee);
+      if (!employee) return;
+      
+      const now = new Date();
+      
+      await addDoc(collection(db, "thirteenthMonthRecords"), {
+        employeeId: selectedEmployee,
+        employeeName: `${employee.firstName} ${employee.lastName}`,
+        payDate: Timestamp.fromDate(now),
+        amount: amount,
+        year: now.getFullYear(),
+        createdAt: Timestamp.fromDate(now)
+      });
+      
+      console.log("13th month pay record saved successfully");
+    } catch (error) {
+      console.error("Error saving 13th month pay record: ", error);
+    }
+  };
 
+  const handle13thMonthPDF = () => {
+    console.log("Exporting 13th month pay PDF");
+  };
+  
+  const getCurrentDate = () => {
+    const now = new Date();
+    return now.toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+  };
+  const savePayrollRecord = async () => {
+    if (!selectedEmployee) return;
+    try {
+      const now = new Date();
+      const employee = employees.find(emp => emp.id === selectedEmployee);
+      if (!employee) return;
+      
+      const currentYear = now.getFullYear();
+      const currentMonth = now.getMonth() + 1;
+      const basicPay = (payrollData.monthlySalary / 2) - calculation.absencesDeduction - calculation.lateDeduction;
+      
+      // Check if a record already exists for this employee, month, year, and pay period
+      const payrollRecordsRef = collection(db, "payrollRecords");
+      const q = query(
+        payrollRecordsRef,
+        where("employeeId", "==", selectedEmployee),
+        where("year", "==", currentYear),
+        where("month", "==", currentMonth),
+        where("period", "==", payPeriod)
+      );
+      
+      const querySnapshot = await getDocs(q);
+      
+      if (!querySnapshot.empty) {
+        // Record exists, update it
+        const existingRecord = querySnapshot.docs[0];
+        const docRef = doc(db, "payrollRecords", existingRecord.id);
+        
+        await updateDoc(docRef, {
+          payDate: Timestamp.fromDate(now),
+          basicPay: basicPay,
+          updatedAt: Timestamp.fromDate(now)
+        });
+        
+        console.log("Payroll record updated successfully");
+      } else {
+        // No record exists, create a new one
+        await addDoc(collection(db, "payrollRecords"), {
+          employeeId: selectedEmployee,
+          employeeName: `${employee.firstName} ${employee.lastName}`,
+          payDate: Timestamp.fromDate(now),
+          basicPay: basicPay,
+          period: payPeriod,
+          year: currentYear,
+          month: currentMonth,
+          createdAt: Timestamp.fromDate(now)
+        });
+        
+        console.log("Payroll record saved successfully");
+      }
+    } catch (error) {
+      console.error("Error saving payroll record: ", error);
+    }
+  };
+  const handlePeriodChange = (event) => {
+    setPayPeriod(event.target.value);
+  };
+  const handleExportPDF = () => {
+    savePayrollRecord();
+  };
   const getSelectedEmployeeName = () => {
     const employee = employees.find(emp => emp.id === selectedEmployee);
     return employee ? `${employee.firstName} ${employee.lastName}` : 'Not Selected';
   };
-
   return (
     <Box sx={{ flexGrow: 3 }}>
       <ResponsiveAppBar />
@@ -256,7 +414,6 @@ function Payroll() {
           <Typography variant="h4" gutterBottom>
             Payroll Management
           </Typography>
-          
           <Grid container spacing={3}>
             <Grid item xs={12} md={6}>
               <Paper elevation={3} sx={{ p: 3 }}>
@@ -380,23 +537,74 @@ function Payroll() {
                     />
                   </Grid>
                   <Grid item xs={12}>
-                    <Button 
-                      variant="contained" 
-                      color="primary" 
+                    <FormControl fullWidth>
+                      <InputLabel>Pay Period</InputLabel>
+                      <Select
+                        value={payPeriod}
+                        label="Pay Period"
+                        onChange={handlePeriodChange}
+                      >
+                        <MenuItem value="1st Half">1st Half</MenuItem>
+                        <MenuItem value="2nd Half">2nd Half</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                  <Grid item xs={12}>
+                    <Button
+                      variant="contained"
+                      color="primary"
                       fullWidth
                       onClick={calculatePayroll}
                     >
                       Calculate Payroll
                     </Button>
                   </Grid>
+                  <Grid item xs={12}>
+                    <Button
+                      variant="contained"
+                      color="secondary"
+                      fullWidth
+                      onClick={calculate13thMonthPay}
+                      disabled={!selectedEmployee || calculating13thMonth}
+                    >
+                      {calculating13thMonth ? 'Calculating...' : 'Calculate 13th Month Pay'}
+                    </Button>
+                  </Grid>
+                  {thirteenthMonthPay > 0 && (
+                    <Grid item xs={12}>
+                      <Box sx={{ mt: 2 }}>
+                        <PDFDownloadLink
+                          document={
+                            <ThirteenthMonthPayPDF
+                              employeeName={getSelectedEmployeeName()}
+                              thirteenthMonthPay={thirteenthMonthPay}
+                              currentDate={getCurrentDate()}
+                            />
+                          }
+                          fileName={`13th-month-pay-${getSelectedEmployeeName()}.pdf`}
+                          onClick={handle13thMonthPDF}
+                        >
+                          {({ loading }) => (
+                            <Button
+                              variant="contained"
+                              color="success"
+                              fullWidth
+                              disabled={loading}
+                            >
+                              {loading ? 'Generating PDF...' : 'Export 13th Month Pay Slip'}
+                            </Button>
+                          )}
+                        </PDFDownloadLink>
+                      </Box>
+                    </Grid>
+                  )}
                 </Grid>
               </Paper>
             </Grid>
-            
             <Grid item xs={12} md={6}>
               <Paper elevation={3} sx={{ p: 3 }}>
                 <Typography variant="h6" gutterBottom>
-                  Payroll Computation results
+                  Payroll Computation Results
                 </Typography>
                 {calculation.netPay > 0 && (
                   <Box sx={{ mt: 2 }}>
@@ -406,9 +614,11 @@ function Payroll() {
                           employeeName={getSelectedEmployeeName()}
                           payrollData={payrollData}
                           calculation={calculation}
+                          currentDate={getCurrentDate()}
                         />
                       }
                       fileName={`payroll-${getSelectedEmployeeName()}.pdf`}
+                      onClick={handleExportPDF}
                     >
                       {({ loading }) => (
                         <Button
@@ -466,7 +676,7 @@ function Payroll() {
                         <TableCell align="right">{formatCurrency(calculation.pagIbigContribution)}</TableCell>
                       </TableRow>
                       <TableRow>
-                        <TableCell>Income Tax</TableCell> 
+                        <TableCell>Income Tax</TableCell>
                         <TableCell align="right">{formatCurrency(calculation.incomeTax)}</TableCell>
                       </TableRow>
                       <TableRow>
