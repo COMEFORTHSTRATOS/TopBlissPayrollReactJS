@@ -194,7 +194,7 @@ function Employees() {
       <Zoom in={show} timeout={300}>
         <Container sx={{ mt: 4 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-            <Typography variant="h5" gutterBottom>
+            <Typography variant="h4" gutterBottom>
               Employees Management
             </Typography>
             <Button
@@ -205,10 +205,6 @@ function Employees() {
               Add Employee
             </Button>
           </Box>
-          
-          <Typography variant="body1">
-            Track and manage employees
-          </Typography>
 
           <TableContainer component={Paper} sx={{ mt: 3 }}>
             <Table>
