@@ -481,7 +481,7 @@ function Recruitment() {
         <Container sx={{ mt: 4 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
             <Typography variant="h4" gutterBottom sx={{ mb: 0 }}>
-              Applicant Tracking System
+              
             </Typography>
             <Button 
               variant="contained" 
