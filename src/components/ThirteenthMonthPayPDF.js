@@ -192,7 +192,7 @@ const ThirteenthMonthPayPDF = ({ employeeName, thirteenthMonthPay, currentDate }
       </View>
       
       <Text style={styles.footer}>
-        This is an official document of Top Bliss Solutions Inc. 13th Month Pay is granted in accordance with Presidential Decree No. 851.
+        This is an official document of TopBliss Solutions Inc. 13th Month Pay is granted in accordance with Presidential Decree No. 851.
       </Text>
     </Page>
   </Document>
